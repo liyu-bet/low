@@ -1,15 +1,11 @@
 import Link from 'next/link';
-import {
-  formatDateRu,
-  formatDateTimeRu,
-  labelLifecycleStage,
-  labelWebsiteStatus,
-} from '@/lib/ui/labels';
+import { formatDateTimeRu } from '@/lib/ui/labels';
 import { listWebsites } from '@/lib/websites/service';
 import {
   getWorkerAutomationStatus,
   labelWorkerPresence,
 } from '@/lib/worker/status';
+import { WebsitesTable } from '@/components/WebsitesTable';
 
 export default async function WebsitesPage({
   searchParams,
@@ -20,6 +16,17 @@ export default async function WebsitesPage({
   const includeArchived = params.archived === '1';
   const websites = await listWebsites({ includeArchived });
   const worker = await getWorkerAutomationStatus();
+
+  const rows = websites.map((site) => ({
+    id: site.id,
+    domain: site.domain,
+    normalizedDomain: site.normalizedDomain,
+    name: site.name,
+    status: site.status,
+    lifecycleStage: site.lifecycleStage,
+    group: site.group,
+    updatedAt: site.updatedAt.toISOString(),
+  }));
 
   return (
     <div className="space-y-6">
@@ -83,48 +90,7 @@ export default async function WebsitesPage({
         </div>
       </section>
 
-      {websites.length === 0 ? (
-        <p className="rounded border border-dashed border-ink-700 px-4 py-10 text-center text-ink-200">
-          Сайтов пока нет. Добавьте первый домен, чтобы начать журнал.
-        </p>
-      ) : (
-        <div className="overflow-x-auto rounded border border-ink-700/70">
-          <table className="min-w-full text-left text-sm">
-            <thead className="bg-ink-900/80 text-ink-200">
-              <tr>
-                <th className="px-4 py-3 font-medium">Домен</th>
-                <th className="px-4 py-3 font-medium">Название</th>
-                <th className="px-4 py-3 font-medium">Статус</th>
-                <th className="px-4 py-3 font-medium">Этап</th>
-                <th className="px-4 py-3 font-medium">Группа</th>
-                <th className="px-4 py-3 font-medium">Обновлён</th>
-              </tr>
-            </thead>
-            <tbody>
-              {websites.map((site) => (
-                <tr key={site.id} className="border-t border-ink-700/50 hover:bg-ink-900/40">
-                  <td className="px-4 py-3">
-                    <Link
-                      href={`/websites/${site.id}`}
-                      className="font-medium text-sand-100 hover:underline"
-                    >
-                      {site.domain}
-                    </Link>
-                    <div className="text-xs text-ink-200">{site.normalizedDomain}</div>
-                  </td>
-                  <td className="px-4 py-3 text-ink-100">{site.name ?? '—'}</td>
-                  <td className="px-4 py-3 text-ink-100">{labelWebsiteStatus(site.status)}</td>
-                  <td className="px-4 py-3 text-ink-100">
-                    {labelLifecycleStage(site.lifecycleStage)}
-                  </td>
-                  <td className="px-4 py-3 text-ink-100">{site.group ?? '—'}</td>
-                  <td className="px-4 py-3 text-ink-200">{formatDateRu(site.updatedAt)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <WebsitesTable websites={rows} />
     </div>
   );
 }
