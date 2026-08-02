@@ -4,6 +4,7 @@ import { DashboardFiltersBar } from '@/components/dashboard/DashboardFiltersBar'
 import { DashboardQuickActions } from '@/components/dashboard/DashboardQuickActions';
 import { DashboardRecentEvents } from '@/components/dashboard/DashboardRecentEvents';
 import { DashboardSummaryCards } from '@/components/dashboard/DashboardSummaryCards';
+import { DashboardUpcomingTasks } from '@/components/dashboard/DashboardUpcomingTasks';
 import { getDashboardData } from '@/lib/dashboard/service';
 import { isDsdConfigured } from '@/lib/dsd/config';
 import { isGscConfigured } from '@/lib/gsc/config';
@@ -21,14 +22,18 @@ export default async function DashboardPage({
       <div>
         <h1 className="font-display text-3xl text-sand-100">Обзор</h1>
         <p className="mt-1 text-sm text-ink-200">
-          Сайты, которые требуют внимания, и последние события. Архивные сайты не учитываются.
+          Сайты, которые требуют внимания, ближайшие задачи и последние события. Архивные сайты не
+          учитываются.
         </p>
       </div>
 
       {data.lifecycleWarning ? (
         <div className="rounded border border-amber-200/40 bg-amber-200/10 px-4 py-3 text-sm text-amber-100">
           <p>{data.lifecycleWarning.message}</p>
-          <Link href="/integrations" className="mt-1 inline-block text-sand-100 underline-offset-2 hover:underline">
+          <Link
+            href="/integrations"
+            className="mt-1 inline-block text-sand-100 underline-offset-2 hover:underline"
+          >
             Открыть интеграции
           </Link>
         </div>
@@ -40,6 +45,8 @@ export default async function DashboardPage({
         dsdConfigured={isDsdConfigured()}
         gscConfigured={isGscConfigured()}
       />
+
+      <DashboardUpcomingTasks items={data.upcomingTasks} />
 
       <DashboardFiltersBar filters={data.filters} groups={data.groups} />
 

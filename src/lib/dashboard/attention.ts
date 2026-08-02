@@ -1,4 +1,4 @@
-import { toDateOnlyUtc, todayDateOnlyUtc } from '@/lib/dates/date-only';
+import { daysBetweenUtc, toDateOnlyUtc, todayDateOnlyUtc } from '@/lib/dates/date-only';
 import {
   getEffectiveFirstClickDate,
   getEffectiveFirstImpressionDate,
@@ -9,6 +9,7 @@ import type {
   AttentionFocus,
   AttentionIntegrationInput,
   AttentionItem,
+  AttentionOverdueTasksInput,
   AttentionPriority,
   AttentionReason,
   AttentionReasonCode,
@@ -16,8 +17,9 @@ import type {
   DashboardFilters,
   DashboardSummary,
 } from '@/lib/dashboard/types';
+import { overdueTaskAttentionPriority } from '@/lib/tasks/classify';
 
-const DAY_MS = 24 * 60 * 60 * 1000;
+export { daysBetweenUtc } from '@/lib/dates/date-only';
 
 const PRIORITY_RANK: Record<AttentionPriority, number> = {
   critical: 0,
@@ -33,11 +35,8 @@ const FOCUS_CODES: Record<Exclude<AttentionFocus, 'all'>, AttentionReasonCode[]>
   stale_work: ['stale_work'],
   expiring: ['domain_expiring'],
   sync_errors: ['dsd_integration_error', 'gsc_integration_error', 'gsc_lifecycle_error'],
+  overdue_tasks: ['overdue_tasks'],
 };
-
-export function daysBetweenUtc(from: Date, to: Date): number {
-  return Math.floor((toDateOnlyUtc(to).getTime() - toDateOnlyUtc(from).getTime()) / DAY_MS);
-}
 
 function maxPriority(reasons: AttentionReason[]): AttentionPriority {
   let best: AttentionPriority = 'medium';
@@ -56,13 +55,15 @@ function parseDomainExpiry(value: string | null | undefined): Date | null {
   return date;
 }
 
-function isExcludedFromAttention(website: AttentionWebsiteInput): boolean {
-  if (website.archivedAt) return true;
-  if (website.status === 'ARCHIVED' || website.lifecycleStage === 'ARCHIVED') return true;
+function isArchivedWebsite(website: AttentionWebsiteInput): boolean {
+  return Boolean(
+    website.archivedAt || website.status === 'ARCHIVED' || website.lifecycleStage === 'ARCHIVED',
+  );
+}
+
+function isEarlyStageWebsite(website: AttentionWebsiteInput): boolean {
   if (website.lifecycleStage === 'IDEA') return true;
-  const launchedAt = getEffectiveLaunchDate(website);
-  if (!launchedAt) return true;
-  return false;
+  return getEffectiveLaunchDate(website) == null;
 }
 
 function hasImportantDsdData(
@@ -81,14 +82,51 @@ export function evaluateWebsiteAttention(
   website: AttentionWebsiteInput,
   integration: AttentionIntegrationInput,
   now: Date = new Date(),
+  overdueTasks: AttentionOverdueTasksInput | null = null,
 ): AttentionItem | null {
-  if (isExcludedFromAttention(website)) return null;
+  if (isArchivedWebsite(website)) return null;
 
   const today = todayDateOnlyUtc(now);
+  const reasons: AttentionReason[] = [];
+
+  if (overdueTasks && overdueTasks.count > 0) {
+    const priority = overdueTaskAttentionPriority(overdueTasks.priorities) ?? 'medium';
+    reasons.push({
+      code: 'overdue_tasks',
+      priority,
+      label: `Просрочено задач: ${overdueTasks.count}`,
+      urgencyDays: 9_500 + overdueTasks.count,
+    });
+  }
+
+  const earlyStage = isEarlyStageWebsite(website);
+  if (earlyStage) {
+    if (reasons.length === 0) return null;
+    const priority = maxPriority(reasons);
+    const urgencyDays = Math.max(...reasons.map((r) => r.urgencyDays));
+    return {
+      websiteId: website.id,
+      domain: website.domain,
+      name: website.name,
+      status: website.status,
+      lifecycleStage: website.lifecycleStage,
+      group: website.group,
+      priority,
+      reasons: sortReasons(reasons),
+      lastWorkAt: website.lastWorkAt,
+      launchedAt: getEffectiveLaunchDate(website),
+      firstImpressionAt: getEffectiveFirstImpressionDate(website),
+      firstClickAt: getEffectiveFirstClickDate(website),
+      domainExpiresAt: parseDomainExpiry(integration.dsdSnapshot?.domainExpiresAt ?? null),
+      dsdStatusLabel: formatDsdStatusLabel(integration),
+      gscStatusLabel: formatGscStatusLabel(integration),
+      urgencyDays,
+    };
+  }
+
   const launchedAt = getEffectiveLaunchDate(website)!;
   const firstImpressionAt = getEffectiveFirstImpressionDate(website);
   const firstClickAt = getEffectiveFirstClickDate(website);
-  const reasons: AttentionReason[] = [];
 
   const snapshot = integration.dsdSnapshot;
   const isDown = snapshot ? isDsdOfflineStatus(snapshot.status) : false;
@@ -326,6 +364,7 @@ export function filterAttentionItems(
 export function buildDashboardSummary(
   totalActive: number,
   items: AttentionItem[],
+  taskCounts: { overdue: number; today: number } = { overdue: 0, today: 0 },
 ): DashboardSummary {
   return {
     totalActive,
@@ -337,6 +376,8 @@ export function buildDashboardSummary(
     staleWork: items.filter((i) => itemMatchesFocus(i, 'stale_work')).length,
     expiring: items.filter((i) => itemMatchesFocus(i, 'expiring')).length,
     syncErrors: items.filter((i) => itemMatchesFocus(i, 'sync_errors')).length,
+    overdueTasks: taskCounts.overdue,
+    tasksDueToday: taskCounts.today,
   };
 }
 

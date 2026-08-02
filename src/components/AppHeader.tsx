@@ -14,6 +14,9 @@ export function AppHeader({ email }: { email: string }) {
             <Link href="/dashboard" className="hover:text-sand-100">
               Обзор
             </Link>
+            <Link href="/tasks" className="hover:text-sand-100">
+              Задачи
+            </Link>
             <Link href="/websites" className="hover:text-sand-100">
               Сайты
             </Link>

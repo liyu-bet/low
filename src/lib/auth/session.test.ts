@@ -55,4 +55,13 @@ describe('resolveProtectedPathAccess', () => {
     assert.equal(access.allowed, false);
     assert.equal(access.redirectTo, '/login?next=%2Fdashboard');
   });
+
+  it('blocks tasks routes without a session', () => {
+    const access = resolveProtectedPathAccess({
+      pathname: '/tasks',
+      hasValidSession: false,
+    });
+    assert.equal(access.allowed, false);
+    assert.equal(access.redirectTo, '/login?next=%2Ftasks');
+  });
 });

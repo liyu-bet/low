@@ -1,4 +1,12 @@
-import type { DateSource, EventCategory, EventSource, LifecycleStage, WebsiteStatus } from '@prisma/client';
+import type {
+  DateSource,
+  EventCategory,
+  EventSource,
+  LifecycleStage,
+  TaskPriority,
+  TaskStatus,
+  WebsiteStatus,
+} from '@prisma/client';
 
 export const APP_FULL_NAME_RU = 'Жизнь сайтов';
 
@@ -46,6 +54,20 @@ export const DATE_SOURCE_LABELS: Record<DateSource, string> = {
   INFERRED: 'выведено',
 };
 
+export const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
+  TODO: 'Запланировано',
+  IN_PROGRESS: 'В работе',
+  DONE: 'Выполнено',
+  CANCELED: 'Отменено',
+};
+
+export const TASK_PRIORITY_LABELS: Record<TaskPriority, string> = {
+  LOW: 'Низкий',
+  MEDIUM: 'Обычный',
+  HIGH: 'Высокий',
+  CRITICAL: 'Критический',
+};
+
 /** Manual event types offered in the form (machine keys stay English). */
 export const MANUAL_EVENT_TYPES = [
   { value: 'note', label: 'Заметка', category: 'NOTE' as const },
@@ -79,6 +101,14 @@ export function labelEventSource(source: EventSource): string {
 export function labelDateSource(source: DateSource | null | undefined): string {
   if (!source) return 'нет';
   return DATE_SOURCE_LABELS[source] ?? source;
+}
+
+export function labelTaskStatus(status: TaskStatus): string {
+  return TASK_STATUS_LABELS[status] ?? status;
+}
+
+export function labelTaskPriority(priority: TaskPriority): string {
+  return TASK_PRIORITY_LABELS[priority] ?? priority;
 }
 
 export function formatDateRu(value: Date | null | undefined): string {

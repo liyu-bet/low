@@ -35,6 +35,8 @@ export const config = {
   matcher: [
     '/dashboard',
     '/dashboard/:path*',
+    '/tasks',
+    '/tasks/:path*',
     '/websites',
     '/websites/:path*',
     '/integrations',

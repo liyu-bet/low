@@ -32,6 +32,7 @@ import {
 } from '@/lib/constants';
 import { prisma } from '@/lib/db/prisma';
 import { parseDsdExternalSnapshot } from '@/lib/dsd/snapshot';
+import { listOpenTasksForDashboard } from '@/lib/tasks/service';
 
 const VALID_FOCUS = new Set<AttentionFocus>([
   'all',
@@ -42,6 +43,7 @@ const VALID_FOCUS = new Set<AttentionFocus>([
   'stale_work',
   'expiring',
   'sync_errors',
+  'overdue_tasks',
 ]);
 
 const VALID_PRIORITY = new Set<AttentionPriority>(['critical', 'high', 'medium']);
@@ -115,7 +117,7 @@ export async function getDashboardData(
 ): Promise<DashboardData> {
   const filters = parseDashboardFilters(searchParams);
 
-  const [websites, recentEventRows, latestLifecycle] = await Promise.all([
+  const [websites, recentEventRows, latestLifecycle, openTasks] = await Promise.all([
     prisma.website.findMany({
       where: {
         archivedAt: null,
@@ -174,6 +176,7 @@ export async function getDashboardData(
         metadata: true,
       },
     }),
+    listOpenTasksForDashboard(now),
   ]);
 
   const lifecycleErrorPropertyIds = parseLifecycleErrorPropertyIds(latestLifecycle?.metadata);
@@ -197,7 +200,9 @@ export async function getDashboardData(
           ),
         };
 
-        return evaluateWebsiteAttention(website, integration, now);
+        const overdue = openTasks.overdueByWebsite.get(website.id) ?? null;
+
+        return evaluateWebsiteAttention(website, integration, now, overdue);
       })
       .filter((item): item is NonNullable<typeof item> => item != null),
   );
@@ -222,13 +227,14 @@ export async function getDashboardData(
   }));
 
   return {
-    summary: buildDashboardSummary(websites.length, items),
+    summary: buildDashboardSummary(websites.length, items, openTasks.summary),
     items,
     filteredItems,
     recentEvents,
     lifecycleWarning: buildLifecycleWarning(latestLifecycle),
     groups,
     filters,
+    upcomingTasks: openTasks.upcoming,
   };
 }
 

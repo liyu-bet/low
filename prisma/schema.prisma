@@ -76,6 +76,20 @@ enum SyncRunStatus {
   SKIPPED
 }
 
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+  CANCELED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
 // ---------------------------------------------------------------------------
 // Models
 // ---------------------------------------------------------------------------
@@ -113,11 +127,35 @@ model Website {
 
   events       WebsiteEvent[]
   integrations WebsiteIntegration[]
+  tasks        WebsiteTask[]
 
   @@index([status])
   @@index([lifecycleStage])
   @@index([group])
   @@index([lastWorkAt])
+}
+
+model WebsiteTask {
+  id          String       @id @default(cuid())
+  websiteId   String
+  title       String
+  description String?
+  priority    TaskPriority @default(MEDIUM)
+  status      TaskStatus   @default(TODO)
+  /// Date-only due date (UTC midnight). No time-of-day semantics in this version.
+  dueAt       DateTime?
+  completedAt DateTime?
+  result      String?
+  createdBy   String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  website Website @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+
+  @@index([websiteId, status])
+  @@index([status, dueAt])
+  @@index([priority])
+  @@index([createdAt])
 }
 
 /// Append-only journal. Do not update/delete rows in normal application flows.

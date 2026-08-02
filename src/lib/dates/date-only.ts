@@ -43,6 +43,13 @@ export function todayDateOnlyUtc(now: Date = new Date()): Date {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 }
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Whole calendar days from `from` to `to` (UTC date-only). */
+export function daysBetweenUtc(from: Date, to: Date): number {
+  return Math.floor((toDateOnlyUtc(to).getTime() - toDateOnlyUtc(from).getTime()) / DAY_MS);
+}
+
 export function assertNotFutureDateOnly(date: Date, now: Date = new Date()): void {
   if (toDateOnlyUtc(date).getTime() > todayDateOnlyUtc(now).getTime()) {
     throw new DateOnlyError('Дата не может быть позже сегодняшнего дня');

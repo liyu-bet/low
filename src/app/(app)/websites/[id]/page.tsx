@@ -8,8 +8,10 @@ import { EventTimeline } from '@/components/EventTimeline';
 import { KeyDatesSection } from '@/components/KeyDatesSection';
 import { WebsiteDsdBlock } from '@/components/WebsiteDsdBlock';
 import { WebsiteGscBlock } from '@/components/WebsiteGscBlock';
+import { WebsiteTasksBlock } from '@/components/tasks/WebsiteTasksBlock';
 import { prisma } from '@/lib/db/prisma';
 import { listWebsiteEvents } from '@/lib/events/service';
+import { getWebsiteTasksBlock } from '@/lib/tasks/service';
 import { formatDateRu, labelLifecycleStage, labelWebsiteStatus } from '@/lib/ui/labels';
 import { WebsiteNotFoundError, getWebsiteById } from '@/lib/websites/service';
 
@@ -28,21 +30,24 @@ export default async function WebsiteDetailPage({
     throw error;
   }
 
-  const events = await listWebsiteEvents(id);
+  const [events, tasksBlock, dsdIntegration, gscIntegrations] = await Promise.all([
+    listWebsiteEvents(id),
+    getWebsiteTasksBlock(website.id),
+    prisma.websiteIntegration.findFirst({
+      where: {
+        websiteId: website.id,
+        system: IntegrationSystem.DSD,
+      },
+    }),
+    prisma.websiteIntegration.findMany({
+      where: {
+        websiteId: website.id,
+        system: IntegrationSystem.GSC,
+      },
+      orderBy: { createdAt: 'asc' },
+    }),
+  ]);
   const createEvent = createManualEventAction.bind(null, website.id);
-  const dsdIntegration = await prisma.websiteIntegration.findFirst({
-    where: {
-      websiteId: website.id,
-      system: IntegrationSystem.DSD,
-    },
-  });
-  const gscIntegrations = await prisma.websiteIntegration.findMany({
-    where: {
-      websiteId: website.id,
-      system: IntegrationSystem.GSC,
-    },
-    orderBy: { createdAt: 'asc' },
-  });
 
   return (
     <div className="space-y-10">
@@ -58,6 +63,12 @@ export default async function WebsiteDetailPage({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Link
+            href={`/tasks?websiteId=${website.id}&action=create`}
+            className="rounded border border-ink-700 px-3 py-2 text-sm text-ink-100 hover:border-moss-500"
+          >
+            Добавить задачу
+          </Link>
           <Link
             href={`/websites/${website.id}/edit`}
             className="rounded border border-ink-700 px-3 py-2 text-sm text-ink-100 hover:border-moss-500"
@@ -89,6 +100,15 @@ export default async function WebsiteDetailPage({
       </dl>
 
       <KeyDatesSection website={website} />
+
+      <WebsiteTasksBlock
+        websiteId={website.id}
+        domain={website.domain}
+        name={website.name}
+        group={website.group}
+        archived={Boolean(website.archivedAt || website.status === 'ARCHIVED')}
+        data={tasksBlock}
+      />
 
       <WebsiteDsdBlock integration={dsdIntegration} />
 

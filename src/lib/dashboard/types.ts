@@ -13,7 +13,8 @@ export type AttentionReasonCode =
   | 'no_impressions'
   | 'no_clicks'
   | 'stale_work'
-  | 'missing_dsd_data';
+  | 'missing_dsd_data'
+  | 'overdue_tasks';
 
 export type AttentionFocus =
   | 'all'
@@ -23,7 +24,8 @@ export type AttentionFocus =
   | 'no_clicks'
   | 'stale_work'
   | 'expiring'
-  | 'sync_errors';
+  | 'sync_errors'
+  | 'overdue_tasks';
 
 export type AttentionReason = {
   code: AttentionReasonCode;
@@ -68,6 +70,12 @@ export type AttentionIntegrationInput = {
   hasLifecycleError: boolean;
 };
 
+export type AttentionOverdueTasksInput = {
+  count: number;
+  /** TaskPriority values of overdue open tasks. */
+  priorities: Array<'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'>;
+};
+
 export type AttentionItem = {
   websiteId: string;
   domain: string;
@@ -97,6 +105,8 @@ export type DashboardSummary = {
   staleWork: number;
   expiring: number;
   syncErrors: number;
+  overdueTasks: number;
+  tasksDueToday: number;
 };
 
 export type DashboardRecentEvent = {
@@ -132,6 +142,8 @@ export type DashboardFilters = {
   priority: '' | AttentionPriority;
 };
 
+import type { DashboardTaskItem } from '@/lib/tasks/types';
+
 export type DashboardData = {
   summary: DashboardSummary;
   items: AttentionItem[];
@@ -140,4 +152,5 @@ export type DashboardData = {
   lifecycleWarning: LifecycleWarning;
   groups: string[];
   filters: DashboardFilters;
+  upcomingTasks: DashboardTaskItem[];
 };

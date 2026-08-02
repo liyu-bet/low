@@ -87,6 +87,20 @@ export function DashboardSummaryCards({
       href: withFocus('sync_errors'),
       active: filters.focus === 'sync_errors',
     },
+    {
+      key: 'overdue_tasks',
+      label: 'Просроченные задачи',
+      value: summary.overdueTasks,
+      href: '/tasks?focus=overdue',
+      active: false,
+    },
+    {
+      key: 'tasks_today',
+      label: 'Задачи на сегодня',
+      value: summary.tasksDueToday,
+      href: '/tasks?focus=today',
+      active: false,
+    },
   ];
 
   return (
