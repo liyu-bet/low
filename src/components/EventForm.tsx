@@ -40,10 +40,36 @@ export function EventForm({ action }: Props) {
   return (
     <form ref={formRef} action={formAction} className="space-y-4 rounded border border-ink-700/70 bg-ink-950/40 p-4">
       <div>
-        <h3 className="font-display text-xl text-sand-100">Новое событие</h3>
+        <h3 className="font-display text-xl text-sand-100">Записать работу</h3>
         <p className="mt-1 text-sm text-ink-200">
-          Журнал только на добавление. Автоматические события появятся позже из DSD/GSC.
+          Быстрая запись в журнал сайта. После сохранения timeline и lastWorkAt обновятся.
         </p>
+        <div className="mt-3 flex flex-wrap gap-2 text-xs">
+          {[
+            { type: 'technical', label: 'Техническая работа' },
+            { type: 'seo', label: 'SEO' },
+            { type: 'content', label: 'Контент' },
+            { type: 'note', label: 'Заметка' },
+          ].map((item) => (
+            <button
+              key={item.type}
+              type="button"
+              onClick={() => {
+                const form = formRef.current;
+                if (!form) return;
+                const typeSelect = form.elements.namedItem('eventType') as HTMLSelectElement | null;
+                const titleInput = form.elements.namedItem('title') as HTMLInputElement | null;
+                if (typeSelect) typeSelect.value = item.type;
+                if (titleInput && !titleInput.value.trim()) {
+                  titleInput.value = item.label;
+                }
+              }}
+              className="rounded border border-ink-700 px-2.5 py-1 text-ink-100 hover:border-moss-500"
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {state.error ? (

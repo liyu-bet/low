@@ -31,8 +31,9 @@ export function WebsiteGscBlock({
       <div>
         <h2 className="font-display text-2xl text-sand-100">GSC</h2>
         <p className="mt-1 text-sm text-ink-200">
-          Read-only снимок Search Console. Дата обнаружения — первый импорт в приложение GSC;
-          показы/клики — earliest available в API, не гарантия первой даты за всю историю.
+          Связано properties: {integrations.length}. Read-only снимок Search Console. Дата
+          обнаружения — первый импорт в приложение GSC; показы/клики — earliest available в API, не
+          гарантия первой даты за всю историю.
         </p>
       </div>
 
@@ -74,6 +75,7 @@ export function WebsiteGscBlock({
                   }
                 />
                 <Meta label="Синхронизация" value={formatDateTimeRu(integration.lastSyncedAt)} />
+                <Meta label="Ошибка sync" value={integration.syncError ?? 'Нет данных'} />
                 <Meta label="External id" value={integration.externalEntityId ?? '—'} />
               </dl>
             </div>

@@ -39,6 +39,7 @@ export async function createManualEventAction(
     });
     revalidatePath(`/websites/${websiteId}`);
     revalidatePath('/websites');
+    revalidatePath('/dashboard');
     return { ok: true };
   } catch (error) {
     return { error: mapError(error) };
