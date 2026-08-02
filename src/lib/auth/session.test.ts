@@ -46,4 +46,13 @@ describe('resolveProtectedPathAccess', () => {
     assert.equal(access.allowed, false);
     assert.equal(access.redirectTo, '/login?next=%2Fintegrations');
   });
+
+  it('blocks dashboard routes without a session', () => {
+    const access = resolveProtectedPathAccess({
+      pathname: '/dashboard',
+      hasValidSession: false,
+    });
+    assert.equal(access.allowed, false);
+    assert.equal(access.redirectTo, '/login?next=%2Fdashboard');
+  });
 });

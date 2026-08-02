@@ -22,7 +22,7 @@ export async function loginAction(
 ): Promise<LoginState> {
   const email = String(formData.get('email') ?? '');
   const password = String(formData.get('password') ?? '');
-  const nextPath = String(formData.get('next') ?? '/websites');
+  const nextPath = String(formData.get('next') ?? '/dashboard');
 
   if (!verifyAdminCredentials(email, password)) {
     return { error: 'Неверный email или пароль' };
@@ -33,7 +33,7 @@ export async function loginAction(
   cookieStore.set(getSessionCookieName(), token, getSessionCookieOptions());
 
   const safeNext =
-    nextPath.startsWith('/') && !nextPath.startsWith('//') ? nextPath : '/websites';
+    nextPath.startsWith('/') && !nextPath.startsWith('//') ? nextPath : '/dashboard';
 
   // Do not call redirect() here: with useActionState it surfaces as a client error in Next 15.
   return { ok: true, redirectTo: safeNext };

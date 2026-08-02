@@ -81,6 +81,7 @@ export async function syncDsdSitesAction(
     const summary = await runManualDsdFullSync({ session });
     revalidatePath('/integrations');
     revalidatePath('/websites');
+    revalidatePath('/dashboard');
     return {
       ok: summary.status !== 'FAILED' && summary.status !== 'SKIPPED',
       message: syncMessage(summary.status, {
@@ -132,6 +133,7 @@ export async function syncGscPropertiesAction(
     const summary = await runManualGscPropertiesSync({ session });
     revalidatePath('/integrations');
     revalidatePath('/websites');
+    revalidatePath('/dashboard');
     return {
       ok: summary.status !== 'FAILED' && summary.status !== 'SKIPPED',
       message: syncMessage(summary.status, {
@@ -164,6 +166,7 @@ export async function syncGscLifecycleAction(
     const summary = await runManualGscLifecycleSync({ session });
     revalidatePath('/integrations');
     revalidatePath('/websites');
+    revalidatePath('/dashboard');
     return {
       ok: summary.status !== 'FAILED' && summary.status !== 'SKIPPED',
       message: syncMessage(summary.status, {

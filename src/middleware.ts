@@ -23,7 +23,7 @@ export async function middleware(request: NextRequest) {
 
   if (pathname === '/login' && session) {
     const url = request.nextUrl.clone();
-    url.pathname = '/websites';
+    url.pathname = '/dashboard';
     url.search = '';
     return NextResponse.redirect(url);
   }
@@ -32,5 +32,14 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/websites', '/websites/:path*', '/integrations', '/integrations/:path*', '/logout', '/login'],
+  matcher: [
+    '/dashboard',
+    '/dashboard/:path*',
+    '/websites',
+    '/websites/:path*',
+    '/integrations',
+    '/integrations/:path*',
+    '/logout',
+    '/login',
+  ],
 };

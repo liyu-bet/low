@@ -120,6 +120,8 @@ export function resolveProtectedPathAccess(options: {
   hasValidSession: boolean;
 }): { allowed: boolean; redirectTo: string | null } {
   const isProtected =
+    options.pathname === '/dashboard' ||
+    options.pathname.startsWith('/dashboard/') ||
     options.pathname === '/websites' ||
     options.pathname.startsWith('/websites/') ||
     options.pathname === '/integrations' ||

@@ -110,7 +110,7 @@ export default async function WebsiteDetailPage({
         <EventTimeline events={events} />
       </section>
 
-      <section>
+      <section id="add-event">
         <EventForm action={createEvent} />
       </section>
     </div>
