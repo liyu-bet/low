@@ -33,8 +33,8 @@ export function getGscClientConfig(
     token,
     timeoutMs: positiveInt(env.GSC_REQUEST_TIMEOUT_MS, 15_000),
     pageSize: positiveInt(env.GSC_SYNC_PAGE_SIZE, 100, 200),
-    lifecycleConcurrency: positiveInt(env.GSC_LIFECYCLE_CONCURRENCY, 2, 8),
-    lifecycleMaxPropertiesPerRun: positiveInt(env.GSC_LIFECYCLE_MAX_PROPERTIES_PER_RUN, 20, 200),
+    lifecycleConcurrency: positiveInt(env.GSC_LIFECYCLE_CONCURRENCY, 4, 8),
+    lifecycleMaxPropertiesPerRun: positiveInt(env.GSC_LIFECYCLE_MAX_PROPERTIES_PER_RUN, 500, 1000),
   };
 }
 

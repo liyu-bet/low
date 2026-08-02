@@ -16,8 +16,8 @@ const config: GscClientConfig = {
   token: 'secret-gsc-token-value',
   timeoutMs: 50,
   pageSize: 2,
-  lifecycleConcurrency: 2,
-  lifecycleMaxPropertiesPerRun: 20,
+  lifecycleConcurrency: 4,
+  lifecycleMaxPropertiesPerRun: 500,
 };
 
 function jsonResponse(body: unknown, status = 200): Response {

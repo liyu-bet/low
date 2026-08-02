@@ -202,7 +202,7 @@ Separate Node process (`npm run worker:start` / Compose service `worker`):
 - Jobs: `dsd_sites_sync` (default every 15m; full recon hour 03:00), `gsc_properties_sync` (every 6h; full hour 04:00), `gsc_lifecycle_sync` (daily 05:00).
 - Timezone `WORKER_TIMEZONE` (default `Europe/Belgrade`); at most one catch-up after restart; daily jobs at most once per local day.
 - Incremental DSD/GSC properties after first successful worker run (`updatedSince` / `incrementalCursor`); forced full at reconciliation hour.
-- Lifecycle only for sites missing automatic impression/click; capped by `GSC_LIFECYCLE_MAX_PROPERTIES_PER_RUN`.
+- Lifecycle only for sites missing automatic impression/click; default cap `GSC_LIFECYCLE_MAX_PROPERTIES_PER_RUN=500` (hard max 1000), concurrency default 4.
 - Heartbeat in `WorkerHeartbeat`; status on `/integrations` («Фоновая синхронизация») and compact «Автоматизация» on `/websites`.
 - Disable with `WORKER_ENABLED=false` (clean exit). No Redis/queue. Worker does not run migrations.
 - Limits: live M2M when env points at prod endpoints; lifecycle backlog drains over days; no token/secret logging.

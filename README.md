@@ -109,8 +109,8 @@ Never use `NEXT_PUBLIC_` for the token.
 - `GSC_LOW_API_TOKEN` — same Bearer token as GSC `GSC_LOW_API_TOKEN`
 - `GSC_REQUEST_TIMEOUT_MS` — default `15000`
 - `GSC_SYNC_PAGE_SIZE` — default `100`
-- `GSC_LIFECYCLE_CONCURRENCY` — default `2`
-- `GSC_LIFECYCLE_MAX_PROPERTIES_PER_RUN` — default `20`
+- `GSC_LIFECYCLE_CONCURRENCY` — default `4`
+- `GSC_LIFECYCLE_MAX_PROPERTIES_PER_RUN` — default `500` (cap 1000)
 
 Google OAuth access/refresh tokens are **never** copied into LOW.
 
