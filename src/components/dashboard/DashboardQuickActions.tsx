@@ -9,14 +9,18 @@ import {
   type IntegrationActionState,
 } from '@/app/(app)/integrations/actions';
 
-function PendingButton({ label, pendingLabel }: { label: string; pendingLabel: string }) {
+function PendingButton({
+  label,
+  pendingLabel,
+  primary,
+}: {
+  label: string;
+  pendingLabel: string;
+  primary?: boolean;
+}) {
   const { pending } = useFormStatus();
   return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="rounded border border-ink-700 px-3 py-2 text-sm text-ink-100 hover:border-moss-500 disabled:opacity-60"
-    >
+    <button type="submit" disabled={pending} className={primary ? 'btn-primary' : 'btn-secondary'}>
       {pending ? pendingLabel : label}
     </button>
   );
@@ -36,12 +40,11 @@ export function DashboardQuickActions({
   );
 
   return (
-    <section className="space-y-3 rounded border border-ink-700/70 bg-ink-950/40 p-4">
-      <h2 className="font-display text-xl text-sand-100">Быстрые действия</h2>
-      <div className="flex flex-wrap gap-3">
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-center gap-2">
         {dsdConfigured ? (
           <form action={dsdAction}>
-            <PendingButton label="Синхронизировать DSD" pendingLabel="Синхронизация…" />
+            <PendingButton label="Синхронизировать DSD" pendingLabel="Синхронизация…" primary />
           </form>
         ) : null}
         {gscConfigured ? (
@@ -49,17 +52,14 @@ export function DashboardQuickActions({
             <PendingButton label="Синхронизировать GSC" pendingLabel="Синхронизация…" />
           </form>
         ) : null}
-        <Link
-          href="/integrations"
-          className="rounded border border-ink-700 px-3 py-2 text-sm text-ink-100 hover:border-moss-500"
-        >
-          Открыть интеграции
+        <Link href="/integrations" className="btn-secondary">
+          Интеграции
         </Link>
       </div>
-      {dsdState.error ? <p className="text-sm text-red-200">{dsdState.error}</p> : null}
-      {dsdState.message ? <p className="text-sm text-moss-400">{dsdState.message}</p> : null}
-      {gscState.error ? <p className="text-sm text-red-200">{gscState.error}</p> : null}
-      {gscState.message ? <p className="text-sm text-moss-400">{gscState.message}</p> : null}
-    </section>
+      {dsdState.error ? <p className="text-sm text-red-700">{dsdState.error}</p> : null}
+      {dsdState.message ? <p className="text-sm text-moss-600">{dsdState.message}</p> : null}
+      {gscState.error ? <p className="text-sm text-red-700">{gscState.error}</p> : null}
+      {gscState.message ? <p className="text-sm text-moss-600">{gscState.message}</p> : null}
+    </div>
   );
 }

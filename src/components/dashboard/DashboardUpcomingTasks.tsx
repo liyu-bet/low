@@ -14,7 +14,7 @@ function PendingButton() {
     <button
       type="submit"
       disabled={pending}
-      className="rounded bg-moss-500 px-2.5 py-1.5 text-xs font-semibold text-ink-950 hover:bg-moss-400 disabled:opacity-60"
+      className="rounded bg-moss-500 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-moss-600 disabled:opacity-60"
     >
       {pending ? '…' : 'Выполнить'}
     </button>
@@ -31,16 +31,16 @@ function DashboardTaskRow({ item }: { item: DashboardTaskItem }) {
   }, [state, router]);
 
   return (
-    <li className="rounded border border-ink-700/70 bg-ink-950/40 px-3 py-3 text-sm">
+    <li className="rounded border border-ink-700 bg-white px-3 py-3 text-sm">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <Link href={`/websites/${item.websiteId}`} className="text-moss-400 hover:text-moss-300">
+          <Link href={`/websites/${item.websiteId}`} className="text-moss-600 hover:text-moss-600">
             {item.domain}
           </Link>
           <p className="mt-1 font-medium text-sand-100">{item.title}</p>
           <p className="mt-1 text-xs text-ink-200">
             {labelTaskPriority(item.priority)} ·{' '}
-            <span className={item.dueBucket === 'overdue' ? 'text-red-200' : ''}>
+            <span className={item.dueBucket === 'overdue' ? 'text-red-700' : ''}>
               {item.dueRelative}
             </span>
           </p>
@@ -50,9 +50,9 @@ function DashboardTaskRow({ item }: { item: DashboardTaskItem }) {
           <PendingButton />
         </form>
       </div>
-      {state.error ? <p className="mt-2 text-xs text-red-200">{state.error}</p> : null}
+      {state.error ? <p className="mt-2 text-xs text-red-700">{state.error}</p> : null}
       {state.ok && state.message ? (
-        <p className="mt-2 text-xs text-moss-400">{state.message}</p>
+        <p className="mt-2 text-xs text-moss-600">{state.message}</p>
       ) : null}
     </li>
   );
@@ -63,10 +63,10 @@ export function DashboardUpcomingTasks({ items }: { items: DashboardTaskItem[] }
     <section className="space-y-3">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
-          <h2 className="font-display text-2xl text-sand-100">Ближайшие задачи</h2>
+          <h2 className="text-2xl font-semibold text-sand-100">Ближайшие задачи</h2>
           <p className="mt-1 text-sm text-ink-200">Просроченные, сегодняшние и ближайшие (до 10).</p>
         </div>
-        <Link href="/tasks" className="text-sm text-moss-400 hover:text-moss-300">
+        <Link href="/tasks" className="text-sm text-moss-600 hover:text-moss-600">
           Все задачи
         </Link>
       </div>

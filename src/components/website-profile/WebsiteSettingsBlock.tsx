@@ -14,7 +14,7 @@ function ArchiveSubmit() {
     <button
       type="submit"
       disabled={pending}
-      className="rounded border border-red-500/50 px-3 py-2 text-sm text-red-200 hover:bg-red-500/10 disabled:opacity-60"
+      className="rounded border border-red-500/50 px-3 py-2 text-sm text-red-700 hover:bg-red-500/10 disabled:opacity-60"
     >
       {pending ? 'Архивация…' : 'Архивировать сайт'}
     </button>
@@ -27,15 +27,15 @@ export function WebsiteSettingsBlock({ website }: { website: Website }) {
 
   return (
     <section id="settings" className="space-y-4">
-      <details className="rounded border border-ink-700/70 bg-ink-950/40 p-4">
-        <summary className="cursor-pointer font-display text-2xl text-sand-100">
+      <details className="rounded border border-ink-700 bg-white p-4">
+        <summary className="cursor-pointer text-2xl font-semibold text-sand-100">
           Настройки сайта
         </summary>
         <div className="mt-4 space-y-3">
           <WebsiteForm action={action} website={website} submitLabel="Сохранить настройки" />
           <p className="text-sm text-ink-200">
             Полная страница редактирования:{' '}
-            <Link href={`/websites/${website.id}/edit`} className="text-moss-400">
+            <Link href={`/websites/${website.id}/edit`} className="text-moss-600">
               открыть
             </Link>
           </p>
@@ -43,8 +43,8 @@ export function WebsiteSettingsBlock({ website }: { website: Website }) {
       </details>
 
       {!website.archivedAt ? (
-        <details className="rounded border border-red-500/30 bg-ink-950/40 p-4">
-          <summary className="cursor-pointer text-sm text-red-200">Опасная зона</summary>
+        <details className="rounded border border-red-500/30 bg-white p-4">
+          <summary className="cursor-pointer text-sm text-red-700">Опасная зона</summary>
           <div className="mt-3 space-y-3">
             <p className="text-sm text-ink-200">
               Архивирование скрывает сайт из основного списка. Связанные события, задачи и
@@ -56,7 +56,7 @@ export function WebsiteSettingsBlock({ website }: { website: Website }) {
                 <input
                   value={confirm}
                   onChange={(e) => setConfirm(e.target.value)}
-                  className="mt-1 w-full rounded border border-ink-700 bg-ink-950 px-3 py-2 text-ink-50"
+                  className="mt-1 w-full rounded border border-ink-700 bg-white px-3 py-2 text-ink-50"
                   autoComplete="off"
                 />
               </label>

@@ -27,7 +27,7 @@ export default async function EditWebsitePage({
         <Link href={`/websites/${website.id}`} className="text-sm text-ink-200 hover:text-sand-100">
           ← {website.domain}
         </Link>
-        <h1 className="mt-2 font-display text-3xl text-sand-100">Редактировать сайт</h1>
+        <h1 className="mt-2 text-3xl font-semibold text-sand-100">Редактировать сайт</h1>
       </div>
       <WebsiteForm action={action} website={website} submitLabel="Сохранить" />
     </div>

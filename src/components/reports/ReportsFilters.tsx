@@ -19,14 +19,14 @@ export function ReportsFilters({
   groups: string[];
 }) {
   return (
-    <form method="get" action="/reports" className="space-y-3 rounded border border-ink-700/70 bg-ink-950/40 p-4">
+    <form method="get" action="/reports" className="space-y-3 rounded border border-ink-700 bg-white p-4">
       <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
         <label className="block text-sm text-ink-200">
           Период запуска
           <select
             name="period"
             defaultValue={filters.period}
-            className="mt-1 w-full rounded border border-ink-700 bg-ink-950 px-3 py-2 text-ink-50"
+            className="mt-1 w-full rounded border border-ink-700 bg-white px-3 py-2 text-ink-50"
           >
             {PERIOD_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
@@ -41,7 +41,7 @@ export function ReportsFilters({
             type="date"
             name="from"
             defaultValue={filters.from}
-            className="mt-1 w-full rounded border border-ink-700 bg-ink-950 px-3 py-2 text-ink-50"
+            className="mt-1 w-full rounded border border-ink-700 bg-white px-3 py-2 text-ink-50"
           />
         </label>
         <label className="block text-sm text-ink-200">
@@ -50,7 +50,7 @@ export function ReportsFilters({
             type="date"
             name="to"
             defaultValue={filters.to}
-            className="mt-1 w-full rounded border border-ink-700 bg-ink-950 px-3 py-2 text-ink-50"
+            className="mt-1 w-full rounded border border-ink-700 bg-white px-3 py-2 text-ink-50"
           />
         </label>
         <label className="block text-sm text-ink-200">
@@ -58,7 +58,7 @@ export function ReportsFilters({
           <select
             name="group"
             defaultValue={filters.group}
-            className="mt-1 w-full rounded border border-ink-700 bg-ink-950 px-3 py-2 text-ink-50"
+            className="mt-1 w-full rounded border border-ink-700 bg-white px-3 py-2 text-ink-50"
           >
             <option value="">Все группы</option>
             <option value="__none__">Без группы</option>
@@ -74,7 +74,7 @@ export function ReportsFilters({
           <select
             name="status"
             defaultValue={filters.status}
-            className="mt-1 w-full rounded border border-ink-700 bg-ink-950 px-3 py-2 text-ink-50"
+            className="mt-1 w-full rounded border border-ink-700 bg-white px-3 py-2 text-ink-50"
           >
             <option value="">Любой статус</option>
             {Object.entries(WEBSITE_STATUS_LABELS).map(([value, label]) => (
@@ -89,7 +89,7 @@ export function ReportsFilters({
           <select
             name="stage"
             defaultValue={filters.stage}
-            className="mt-1 w-full rounded border border-ink-700 bg-ink-950 px-3 py-2 text-ink-50"
+            className="mt-1 w-full rounded border border-ink-700 bg-white px-3 py-2 text-ink-50"
           >
             <option value="">Все этапы</option>
             {Object.entries(LIFECYCLE_STAGE_LABELS).map(([value, label]) => (
@@ -116,7 +116,7 @@ export function ReportsFilters({
       <div className="flex flex-wrap gap-3">
         <button
           type="submit"
-          className="rounded bg-moss-600 px-4 py-2 text-sm text-sand-50 hover:bg-moss-500"
+          className="rounded bg-moss-600 px-4 py-2 text-sm text-white hover:bg-moss-500"
         >
           Применить
         </button>

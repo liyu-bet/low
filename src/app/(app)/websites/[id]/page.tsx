@@ -39,15 +39,15 @@ export default async function WebsiteDetailPage({
   const createEvent = createManualEventAction.bind(null, website.id);
 
   return (
-    <div className="space-y-8 lg:space-y-10">
+    <div className="space-y-6">
       <WebsiteProfileHeader website={website} openUrl={profile.overview.openUrl} />
 
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
-        <div className="space-y-8 min-w-0">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+        <div className="min-w-0 space-y-6">
           <WebsiteStatusOverview website={website} overview={profile.overview} />
           <WebsiteLifecycle website={website} intervals={profile.intervals} />
 
-          <section id="integrations" className="space-y-6">
+          <section id="integrations" className="space-y-4">
             <WebsiteDsdBlock integration={profile.dsdIntegration} />
             <WebsiteGscBlock
               integrations={profile.gscIntegrations}
@@ -59,7 +59,7 @@ export default async function WebsiteDetailPage({
 
           <section id="history" className="space-y-4">
             <div>
-              <h2 className="font-display text-2xl text-sand-100">Журнал событий</h2>
+              <h2 className="text-xl font-semibold text-ink-50 sm:text-2xl">Журнал событий</h2>
               <p className="mt-1 text-sm text-ink-200">
                 Хронология по дате события. Источник каждой записи виден в ленте.
               </p>
@@ -81,7 +81,7 @@ export default async function WebsiteDetailPage({
           <WebsiteSettingsBlock website={website} />
         </div>
 
-        <aside className="space-y-6 lg:sticky lg:top-6 lg:self-start">
+        <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
           <WebsiteAttentionBlock attention={profile.attention} websiteId={website.id} />
           <WebsiteTasksBlock
             websiteId={website.id}

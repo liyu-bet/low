@@ -14,7 +14,7 @@ function PendingButton({ label, pendingLabel }: { label: string; pendingLabel: s
     <button
       type="submit"
       disabled={pending}
-      className="rounded bg-moss-500 px-3 py-2 text-sm font-semibold text-ink-950 hover:bg-moss-400 disabled:opacity-60"
+      className="rounded bg-moss-500 px-3 py-2 text-sm font-semibold text-white hover:bg-moss-600 disabled:opacity-60"
     >
       {pending ? pendingLabel : label}
     </button>
@@ -46,23 +46,23 @@ export function DsdIntegrationActions({ configured }: { configured: boolean }) {
       </div>
 
       {healthState.error ? (
-        <p className="rounded border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+        <p className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
           {healthState.error}
         </p>
       ) : null}
       {healthState.ok && healthState.health ? (
-        <p className="rounded border border-moss-500/40 bg-moss-500/10 px-3 py-2 text-sm text-moss-400">
+        <p className="rounded border border-moss-500/40 bg-moss-50 px-3 py-2 text-sm text-moss-600">
           {healthState.message}: {healthState.health.service}, {healthState.health.generatedAt}
         </p>
       ) : null}
 
       {syncState.error ? (
-        <p className="rounded border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+        <p className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
           {syncState.error}
         </p>
       ) : null}
       {syncState.ok && syncState.summary ? (
-        <div className="rounded border border-moss-500/40 bg-moss-500/10 px-3 py-2 text-sm text-moss-400">
+        <div className="rounded border border-moss-500/40 bg-moss-50 px-3 py-2 text-sm text-moss-600">
           <div>{syncState.message}</div>
           <div className="mt-1 text-ink-200">
             Статус: {syncState.summary.status} · обработано {syncState.summary.processed} · создано{' '}

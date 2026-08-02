@@ -13,7 +13,7 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="rounded bg-moss-500 px-4 py-2 text-sm font-semibold text-ink-950 hover:bg-moss-400 disabled:opacity-60"
+      className="rounded bg-moss-500 px-4 py-2 text-sm font-semibold text-white hover:bg-moss-600 disabled:opacity-60"
     >
       {pending ? 'Сохранение…' : 'Добавить событие'}
     </button>
@@ -38,9 +38,9 @@ export function EventForm({ action }: Props) {
   }, [state, router]);
 
   return (
-    <form ref={formRef} action={formAction} className="space-y-4 rounded border border-ink-700/70 bg-ink-950/40 p-4">
+    <form ref={formRef} action={formAction} className="space-y-4 rounded border border-ink-700 bg-white p-4">
       <div>
-        <h3 className="font-display text-xl text-sand-100">Записать работу</h3>
+        <h3 className="text-xl font-semibold text-sand-100">Записать работу</h3>
         <p className="mt-1 text-sm text-ink-200">
           Быстрая запись в журнал сайта. После сохранения обновятся лента событий и дата последней работы.
         </p>
@@ -73,12 +73,12 @@ export function EventForm({ action }: Props) {
       </div>
 
       {state.error ? (
-        <p className="rounded border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+        <p className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
           {state.error}
         </p>
       ) : null}
       {state.ok ? (
-        <p className="rounded border border-moss-500/40 bg-moss-500/10 px-3 py-2 text-sm text-moss-400">
+        <p className="rounded border border-moss-500/40 bg-moss-50 px-3 py-2 text-sm text-moss-600">
           Событие добавлено в журнал.
         </p>
       ) : null}
@@ -163,7 +163,7 @@ function Field({
     <label className="block space-y-1.5" htmlFor={htmlFor}>
       <span className="text-sm text-ink-200">
         {label}
-        {required ? <span className="text-moss-400"> *</span> : null}
+        {required ? <span className="text-moss-600"> *</span> : null}
       </span>
       {children}
     </label>
@@ -171,4 +171,4 @@ function Field({
 }
 
 const inputClass =
-  'w-full rounded border border-ink-700 bg-ink-900 px-3 py-2 text-ink-50 outline-none focus:border-moss-500';
+  'w-full rounded border border-ink-700 bg-white px-3 py-2 text-ink-50 outline-none focus:border-moss-500';

@@ -4,7 +4,7 @@ export function WorkActivity({ rows }: { rows: WorkActivityMonth[] }) {
   return (
     <section className="space-y-3">
       <div>
-        <h2 className="font-display text-2xl text-sand-100">Активность работ</h2>
+        <h2 className="text-2xl font-semibold text-sand-100">Активность работ</h2>
         <p className="mt-1 text-sm text-ink-200">
           Последние 12 месяцев. DSD/GSC — отдельная строка «Автоматические события».
         </p>

@@ -5,9 +5,9 @@ import { formatDateTimeRu, labelEventCategory, labelEventSource } from '@/lib/ui
 function highlightClass(highlight: DashboardRecentEvent['highlight']): string {
   switch (highlight) {
     case 'down':
-      return 'border-red-500/40 bg-red-500/10';
+      return 'border-red-200 bg-red-50';
     case 'recovered':
-      return 'border-moss-500/40 bg-moss-500/10';
+      return 'border-moss-500/40 bg-moss-50';
     case 'first_impression':
     case 'first_click':
       return 'border-moss-500/30 bg-moss-500/5';
@@ -16,7 +16,7 @@ function highlightClass(highlight: DashboardRecentEvent['highlight']): string {
     case 'date_change':
       return 'border-amber-200/30 bg-amber-200/5';
     default:
-      return 'border-ink-700/60 bg-ink-950/40';
+      return 'border-ink-700 bg-white';
   }
 }
 
@@ -43,7 +43,7 @@ export function DashboardRecentEvents({ events }: { events: DashboardRecentEvent
   return (
     <section className="space-y-3">
       <div>
-        <h2 className="font-display text-2xl text-sand-100">Последние события</h2>
+        <h2 className="text-2xl font-semibold text-sand-100">Последние события</h2>
         <p className="mt-1 text-sm text-ink-200">20 последних записей журнала.</p>
       </div>
       {events.length === 0 ? (
@@ -60,7 +60,7 @@ export function DashboardRecentEvents({ events }: { events: DashboardRecentEvent
                 <div className="flex flex-wrap items-center gap-2 text-xs text-ink-200">
                   <time>{formatDateTimeRu(event.occurredAt)}</time>
                   <span>·</span>
-                  <Link href={`/websites/${event.websiteId}`} className="text-moss-400 hover:text-moss-300">
+                  <Link href={`/websites/${event.websiteId}`} className="text-moss-600 hover:text-moss-600">
                     {event.domain}
                   </Link>
                   {badge ? (

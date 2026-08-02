@@ -34,10 +34,10 @@ function PendingButton({
 
 function ActionMessage({ state }: { state: TaskActionState }) {
   if (state.error) {
-    return <p className="mt-2 text-xs text-red-200">{state.error}</p>;
+    return <p className="mt-2 text-xs text-red-700">{state.error}</p>;
   }
   if (state.ok && state.message) {
-    return <p className="mt-2 text-xs text-moss-400">{state.message}</p>;
+    return <p className="mt-2 text-xs text-moss-600">{state.message}</p>;
   }
   return null;
 }
@@ -80,12 +80,12 @@ export function TaskActions({ item }: { item: TaskListItem }) {
               <input
                 name="result"
                 placeholder="Результат (необязательно)"
-                className="min-w-[10rem] flex-1 rounded border border-ink-700 bg-ink-950 px-2 py-1.5 text-ink-50"
+                className="min-w-[10rem] flex-1 rounded border border-ink-700 bg-white px-2 py-1.5 text-ink-50"
               />
               <PendingButton
                 label="Выполнить"
                 pendingLabel="…"
-                className="rounded bg-moss-500 px-2.5 py-1.5 font-semibold text-ink-950 hover:bg-moss-400 disabled:opacity-60"
+                className="rounded bg-moss-500 px-2.5 py-1.5 font-semibold text-white hover:bg-moss-600 disabled:opacity-60"
               />
             </form>
             <form action={cancelAction}>
@@ -110,19 +110,19 @@ export function TaskActions({ item }: { item: TaskListItem }) {
               name="title"
               required
               defaultValue={item.title}
-              className="w-full rounded border border-ink-700 bg-ink-950 px-2 py-1.5 text-ink-50"
+              className="w-full rounded border border-ink-700 bg-white px-2 py-1.5 text-ink-50"
             />
             <textarea
               name="description"
               rows={2}
               defaultValue={item.description ?? ''}
-              className="w-full rounded border border-ink-700 bg-ink-950 px-2 py-1.5 text-ink-50"
+              className="w-full rounded border border-ink-700 bg-white px-2 py-1.5 text-ink-50"
             />
             <div className="grid gap-2 sm:grid-cols-2">
               <select
                 name="priority"
                 defaultValue={item.priority}
-                className="rounded border border-ink-700 bg-ink-950 px-2 py-1.5 text-ink-50"
+                className="rounded border border-ink-700 bg-white px-2 py-1.5 text-ink-50"
               >
                 {Object.entries(TASK_PRIORITY_LABELS).map(([value, label]) => (
                   <option key={value} value={value}>
@@ -134,7 +134,7 @@ export function TaskActions({ item }: { item: TaskListItem }) {
                 name="dueAt"
                 type="date"
                 defaultValue={dateOnlyToInputValue(item.dueAt)}
-                className="rounded border border-ink-700 bg-ink-950 px-2 py-1.5 text-ink-50"
+                className="rounded border border-ink-700 bg-white px-2 py-1.5 text-ink-50"
               />
             </div>
             <PendingButton
@@ -166,9 +166,9 @@ export function TaskList({ items }: { items: TaskListItem[] }) {
 
   return (
     <>
-      <div className="hidden overflow-x-auto rounded border border-ink-700/70 md:block">
+      <div className="hidden overflow-x-auto rounded border border-ink-700 md:block">
         <table className="min-w-full text-left text-sm">
-          <thead className="border-b border-ink-700/70 bg-ink-950/60 text-xs uppercase tracking-wide text-ink-200">
+          <thead className="border-b border-ink-700 bg-ink-900 text-xs font-medium text-ink-200">
             <tr>
               <th className="px-3 py-3 font-medium">Задача</th>
               <th className="px-3 py-3 font-medium">Сайт</th>
@@ -190,7 +190,7 @@ export function TaskList({ items }: { items: TaskListItem[] }) {
                 <td className="px-3 py-3">
                   <Link
                     href={`/websites/${item.websiteId}`}
-                    className="text-moss-400 hover:text-moss-300"
+                    className="text-moss-600 hover:text-moss-600"
                   >
                     {item.website.domain}
                   </Link>
@@ -200,7 +200,7 @@ export function TaskList({ items }: { items: TaskListItem[] }) {
                 <td className="px-3 py-3">
                   <div
                     className={
-                      item.dueBucket === 'overdue' ? 'font-medium text-red-200' : 'text-ink-200'
+                      item.dueBucket === 'overdue' ? 'font-medium text-red-700' : 'text-ink-200'
                     }
                   >
                     {item.dueRelative}
@@ -219,21 +219,21 @@ export function TaskList({ items }: { items: TaskListItem[] }) {
         {items.map((item) => (
           <article
             key={item.id}
-            className="rounded border border-ink-700/70 bg-ink-950/40 p-4"
+            className="rounded border border-ink-700 bg-white p-4"
           >
             <div className="flex items-start justify-between gap-3">
               <h3 className="font-medium text-sand-100">{item.title}</h3>
               <span className="text-xs text-ink-200">{labelTaskPriority(item.priority)}</span>
             </div>
             <p className="mt-1 text-sm text-ink-200">
-              <Link href={`/websites/${item.websiteId}`} className="text-moss-400">
+              <Link href={`/websites/${item.websiteId}`} className="text-moss-600">
                 {item.website.domain}
               </Link>
               {' · '}
               {labelTaskStatus(item.status)}
             </p>
             <p
-              className={`mt-2 text-sm ${item.dueBucket === 'overdue' ? 'text-red-200' : 'text-ink-200'}`}
+              className={`mt-2 text-sm ${item.dueBucket === 'overdue' ? 'text-red-700' : 'text-ink-200'}`}
             >
               {item.dueRelative}
             </p>

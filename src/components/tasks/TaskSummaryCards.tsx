@@ -36,14 +36,14 @@ export function TaskSummaryCards({
             href={href}
             className={`rounded border px-4 py-3 transition ${
               active
-                ? 'border-moss-500 bg-moss-500/10'
-                : 'border-ink-700/70 bg-ink-950/40 hover:border-moss-500/60'
+                ? 'border-moss-500 bg-moss-50'
+                : 'border-ink-700 bg-white hover:border-moss-500/60'
             }`}
           >
-            <p className="text-xs uppercase tracking-wide text-ink-200">{card.label}</p>
+            <p className="text-xs font-medium text-ink-200">{card.label}</p>
             <p
-              className={`mt-1 font-display text-3xl ${
-                card.focus === 'overdue' && card.value > 0 ? 'text-red-200' : 'text-sand-100'
+              className={`mt-1 text-3xl font-semibold ${
+                card.focus === 'overdue' && card.value > 0 ? 'text-red-700' : 'text-sand-100'
               }`}
             >
               {card.value}

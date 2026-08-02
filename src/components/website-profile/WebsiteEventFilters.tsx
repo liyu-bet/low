@@ -41,14 +41,14 @@ export function WebsiteEventFilters({
 
   return (
     <div className="space-y-3">
-      <form method="get" action={`/websites/${websiteId}`} className="space-y-3 rounded border border-ink-700/70 bg-ink-950/40 p-4">
+      <form method="get" action={`/websites/${websiteId}`} className="space-y-3 rounded border border-ink-700 bg-white p-4">
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
           <label className="block text-sm text-ink-200">
             Тип
             <select
               name="focus"
               defaultValue={query.focus}
-              className="mt-1 w-full rounded border border-ink-700 bg-ink-950 px-3 py-2 text-ink-50"
+              className="mt-1 w-full rounded border border-ink-700 bg-white px-3 py-2 text-ink-50"
             >
               {FOCUS_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -62,7 +62,7 @@ export function WebsiteEventFilters({
             <select
               name="source"
               defaultValue={query.source}
-              className="mt-1 w-full rounded border border-ink-700 bg-ink-950 px-3 py-2 text-ink-50"
+              className="mt-1 w-full rounded border border-ink-700 bg-white px-3 py-2 text-ink-50"
             >
               <option value="">Все источники</option>
               {(Object.keys(EVENT_SOURCE_LABELS) as EventSource[]).map((source) => (
@@ -77,7 +77,7 @@ export function WebsiteEventFilters({
             <select
               name="period"
               defaultValue={query.period}
-              className="mt-1 w-full rounded border border-ink-700 bg-ink-950 px-3 py-2 text-ink-50"
+              className="mt-1 w-full rounded border border-ink-700 bg-white px-3 py-2 text-ink-50"
             >
               {PERIOD_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -92,14 +92,14 @@ export function WebsiteEventFilters({
               name="q"
               defaultValue={query.q}
               placeholder="Заголовок или описание"
-              className="mt-1 w-full rounded border border-ink-700 bg-ink-950 px-3 py-2 text-ink-50"
+              className="mt-1 w-full rounded border border-ink-700 bg-white px-3 py-2 text-ink-50"
             />
           </label>
         </div>
         <div className="flex flex-wrap gap-3">
           <button
             type="submit"
-            className="rounded bg-moss-500 px-3 py-2 text-sm font-semibold text-ink-950 hover:bg-moss-400"
+            className="rounded bg-moss-500 px-3 py-2 text-sm font-semibold text-white hover:bg-moss-600"
           >
             Применить
           </button>

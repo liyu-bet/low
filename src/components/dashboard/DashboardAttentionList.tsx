@@ -9,8 +9,8 @@ function priorityLabel(priority: AttentionPriority): string {
 }
 
 function priorityClass(priority: AttentionPriority): string {
-  if (priority === 'critical') return 'text-red-200';
-  if (priority === 'high') return 'text-amber-200';
+  if (priority === 'critical') return 'text-red-700';
+  if (priority === 'high') return 'text-amber-800';
   return 'text-ink-100';
 }
 
@@ -49,7 +49,7 @@ function AttentionRow({ item }: { item: AttentionItem }) {
       </td>
       <td className="px-3 py-3 align-top">
         <div className="flex flex-col gap-2 text-sm">
-          <Link href={`/websites/${item.websiteId}`} className="text-moss-400 hover:text-moss-300">
+          <Link href={`/websites/${item.websiteId}`} className="text-moss-600 hover:text-moss-600">
             Открыть
           </Link>
           <Link
@@ -75,9 +75,9 @@ export function DashboardAttentionList({ items }: { items: AttentionItem[] }) {
 
   return (
     <>
-      <div className="hidden overflow-x-auto rounded border border-ink-700/70 md:block">
+      <div className="hidden overflow-x-auto rounded border border-ink-700 md:block">
         <table className="min-w-full text-left text-sm">
-          <thead className="border-b border-ink-700/70 bg-ink-950/60 text-xs uppercase tracking-wide text-ink-200">
+          <thead className="border-b border-ink-700 bg-ink-900 text-xs font-medium text-ink-200">
             <tr>
               <th className="px-3 py-3 font-medium">Сайт</th>
               <th className="px-3 py-3 font-medium">Статус / этап</th>
@@ -103,7 +103,7 @@ export function DashboardAttentionList({ items }: { items: AttentionItem[] }) {
         {items.map((item) => (
           <article
             key={item.websiteId}
-            className="rounded border border-ink-700/70 bg-ink-950/40 p-4"
+            className="rounded border border-ink-700 bg-white p-4"
           >
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -152,7 +152,7 @@ export function DashboardAttentionList({ items }: { items: AttentionItem[] }) {
               </div>
             </dl>
             <div className="mt-4 flex gap-4 text-sm">
-              <Link href={`/websites/${item.websiteId}`} className="text-moss-400">
+              <Link href={`/websites/${item.websiteId}`} className="text-moss-600">
                 Открыть
               </Link>
               <Link href={`/websites/${item.websiteId}#add-event`} className="text-ink-100">

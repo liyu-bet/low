@@ -14,9 +14,9 @@ export default async function TasksPage({
   const data = await getTasksPageData(params);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div>
-        <h1 className="font-display text-3xl text-sand-100">Задачи</h1>
+        <h1 className="text-2xl font-semibold text-ink-50 sm:text-3xl">Задачи</h1>
         <p className="mt-1 text-sm text-ink-200">
           Планы и работы по сайтам. Выполнение задачи пишет событие в журнал сайта.
         </p>
@@ -39,12 +39,12 @@ export default async function TasksPage({
       <section className="space-y-3">
         <div className="flex flex-wrap items-end justify-between gap-2">
           <div>
-            <h2 className="font-display text-2xl text-sand-100">Список</h2>
+            <h2 className="text-xl font-semibold text-ink-50">Список</h2>
             <p className="mt-1 text-sm text-ink-200">
               Показано {data.filteredItems.length} из {data.items.length}
             </p>
           </div>
-          <Link href="/dashboard" className="text-sm text-ink-200 hover:text-sand-100">
+          <Link href="/dashboard" className="text-sm text-ink-200 hover:text-ink-50">
             К обзору
           </Link>
         </div>

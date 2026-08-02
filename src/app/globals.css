@@ -3,9 +3,156 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
+  --background: #f6f7f9;
+  --surface: #ffffff;
+  --surface-muted: #f9fafb;
+  --border: #e5e7eb;
+  --border-strong: #d1d5db;
+  --text: #17201c;
+  --text-muted: #667085;
+  --accent: #287a57;
+  --accent-hover: #216548;
+  --accent-soft: #eaf5ef;
+  --warning: #b7791f;
+  --warning-soft: #fff7e6;
+  --danger: #c24141;
+  --danger-soft: #fff0f0;
+}
+
+html {
+  color-scheme: light;
 }
 
 body {
   margin: 0;
+  background: var(--background);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+@layer base {
+  h1 {
+    @apply text-[1.75rem] font-semibold leading-tight tracking-tight text-ink-50 sm:text-[2rem];
+  }
+  h2 {
+    @apply text-xl font-semibold leading-snug text-ink-50 sm:text-2xl;
+  }
+  h3 {
+    @apply text-base font-semibold leading-snug text-ink-50 sm:text-lg;
+  }
+
+  input:not([type='checkbox']):not([type='radio']):not([type='hidden']),
+  select,
+  textarea {
+    @apply rounded-lg border border-ink-800 bg-white px-3 py-2 text-sm text-ink-50 shadow-none outline-none transition;
+  }
+
+  input:not([type='checkbox']):not([type='radio']):not([type='hidden']):focus,
+  select:focus,
+  textarea:focus {
+    @apply border-moss-500 ring-2 ring-moss-50;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    @apply text-ink-300;
+  }
+
+  textarea {
+    min-height: 5.5rem;
+  }
+}
+
+@layer components {
+  .font-display {
+    font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+    font-weight: 600;
+  }
+
+  .ui-card {
+    @apply rounded-card border border-ink-700 bg-white p-4 shadow-card sm:p-5;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center rounded-lg bg-moss-500 px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-moss-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-moss-500 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center rounded-lg border border-ink-800 bg-white px-3.5 py-2 text-sm font-medium text-ink-50 transition hover:bg-ink-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-moss-500 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .btn-danger {
+    @apply inline-flex items-center justify-center rounded-lg border border-red-200 bg-red-50 px-3.5 py-2 text-sm font-medium text-red-700 transition hover:bg-red-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .badge {
+    @apply inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium;
+  }
+
+  .badge-neutral {
+    @apply badge bg-ink-900 text-ink-200;
+  }
+
+  .badge-accent {
+    @apply badge bg-moss-50 text-moss-700;
+  }
+
+  .badge-warning {
+    @apply badge bg-amber-50 text-amber-800;
+  }
+
+  .badge-danger {
+    @apply badge bg-red-50 text-red-700;
+  }
+
+  .alert-warning {
+    @apply rounded-card border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900;
+  }
+
+  .alert-danger {
+    @apply rounded-card border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800;
+  }
+
+  .alert-success {
+    @apply rounded-card border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800;
+  }
+
+  .empty-state {
+    @apply rounded-card border border-dashed border-ink-800 bg-white px-4 py-8 text-center text-sm text-ink-200;
+  }
+
+  .stat-card {
+    @apply rounded-card border border-ink-700 bg-white px-3 py-3 shadow-card transition;
+  }
+
+  .stat-card-active {
+    @apply border-moss-500 bg-moss-50;
+  }
+
+  .table-shell {
+    @apply overflow-x-auto rounded-card border border-ink-700 bg-white;
+  }
+
+  .data-table {
+    @apply min-w-full text-left text-sm;
+  }
+
+  .data-table thead {
+    @apply bg-ink-900 text-ink-200;
+  }
+
+  .data-table th {
+    @apply px-3 py-2.5 font-medium;
+  }
+
+  .data-table td {
+    @apply border-t border-ink-700 px-3 py-2.5 text-ink-100;
+  }
+
+  .data-table tbody tr:hover {
+    @apply bg-ink-900/80;
+  }
 }

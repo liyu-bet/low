@@ -6,7 +6,7 @@ export default function LogoutPage() {
       <form action={logoutAction}>
         <button
           type="submit"
-          className="rounded bg-moss-500 px-4 py-2 text-sm font-semibold text-ink-950"
+          className="rounded bg-moss-500 px-4 py-2 text-sm font-semibold text-white"
         >
           Подтвердить выход
         </button>

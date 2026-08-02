@@ -8,11 +8,7 @@ import { loginAction, type LoginState } from '@/app/login/actions';
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="w-full rounded bg-moss-500 px-4 py-2.5 text-sm font-semibold text-ink-950 hover:bg-moss-400 disabled:opacity-60"
-    >
+    <button type="submit" disabled={pending} className="btn-primary w-full">
       {pending ? 'Вход…' : 'Войти'}
     </button>
   );
@@ -33,28 +29,26 @@ export function LoginForm({ nextPath }: { nextPath: string }) {
     <form action={formAction} className="space-y-4">
       <input type="hidden" name="next" value={nextPath} />
       {state.error ? (
-        <p className="rounded border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200">
-          {state.error}
-        </p>
+        <p className="alert-danger">{state.error}</p>
       ) : null}
-      <label className="block space-y-1.5 text-sm text-ink-200">
-        <span>Email</span>
+      <label className="block text-sm font-medium text-ink-100">
+        Email
         <input
           name="email"
           type="email"
           required
           autoComplete="username"
-          className="w-full rounded border border-ink-700 bg-ink-900 px-3 py-2 text-ink-50 outline-none focus:border-moss-500"
+          className="mt-1.5 w-full"
         />
       </label>
-      <label className="block space-y-1.5 text-sm text-ink-200">
-        <span>Пароль</span>
+      <label className="block text-sm font-medium text-ink-100">
+        Пароль
         <input
           name="password"
           type="password"
           required
           autoComplete="current-password"
-          className="w-full rounded border border-ink-700 bg-ink-900 px-3 py-2 text-ink-50 outline-none focus:border-moss-500"
+          className="mt-1.5 w-full"
         />
       </label>
       <SubmitButton />

@@ -46,7 +46,7 @@ export default async function WebsitesPage({
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-3xl text-sand-100">Сайты</h1>
+          <h1 className="text-3xl font-semibold text-sand-100">Сайты</h1>
           <p className="mt-1 text-sm text-ink-200">
             Инвентарь жизненного цикла всех отслеживаемых доменов.
           </p>
@@ -60,14 +60,14 @@ export default async function WebsitesPage({
           </Link>
           <Link
             href="/websites/new"
-            className="rounded bg-moss-500 px-3 py-2 font-semibold text-ink-950 hover:bg-moss-400"
+            className="rounded bg-moss-500 px-3 py-2 font-semibold text-white hover:bg-moss-600"
           >
             Добавить сайт
           </Link>
         </div>
       </div>
 
-      <section className="rounded border border-ink-700/70 bg-ink-950/30 px-4 py-3 text-sm text-ink-200">
+      <section className="rounded border border-ink-700 bg-white/30 px-4 py-3 text-sm text-ink-200">
         <h2 className="font-medium text-ink-50">Автоматизация</h2>
         <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1">
           <span>
@@ -75,10 +75,10 @@ export default async function WebsitesPage({
             <span
               className={
                 worker.presence === 'online'
-                  ? 'text-moss-400'
+                  ? 'text-moss-600'
                   : worker.presence === 'stale'
-                    ? 'text-amber-200'
-                    : 'text-red-200'
+                    ? 'text-amber-800'
+                    : 'text-red-700'
               }
             >
               {labelWorkerPresence(worker.presence)}
@@ -96,7 +96,7 @@ export default async function WebsitesPage({
           </span>
           <span>Ждут lifecycle: {worker.lifecycleAwaitingCount}</span>
           {worker.lastWorkerError ? (
-            <span className="text-red-200">Ошибка: {worker.lastWorkerError}</span>
+            <span className="text-red-700">Ошибка: {worker.lastWorkerError}</span>
           ) : null}
           <Link href="/integrations" className="text-sand-100 underline-offset-2 hover:underline">
             Подробнее

@@ -13,7 +13,7 @@ function SubmitButton({ label }: { label: string }) {
     <button
       type="submit"
       disabled={pending}
-      className="rounded bg-moss-500 px-3 py-2 text-sm font-semibold text-ink-950 hover:bg-moss-400 disabled:opacity-60"
+      className="rounded bg-moss-500 px-3 py-2 text-sm font-semibold text-white hover:bg-moss-600 disabled:opacity-60"
     >
       {pending ? 'Сохранение…' : label}
     </button>
@@ -49,9 +49,9 @@ export function DateOverrideForm({
   const error = setState.error || clearState.error;
 
   return (
-    <div className="mt-3 space-y-3 rounded border border-ink-700/80 bg-ink-950/60 p-3">
+    <div className="mt-3 space-y-3 rounded border border-ink-700/80 bg-ink-900 p-3">
       {error ? (
-        <p className="rounded border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+        <p className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
           {error}
         </p>
       ) : null}
@@ -60,7 +60,7 @@ export function DateOverrideForm({
         <input type="hidden" name="field" value={field} />
         <label className="block space-y-1.5 text-sm text-ink-200">
           <span>
-            Новое значение даты <span className="text-moss-400">*</span>
+            Новое значение даты <span className="text-moss-600">*</span>
           </span>
           <input
             type="date"
@@ -72,7 +72,7 @@ export function DateOverrideForm({
         </label>
         <label className="block space-y-1.5 text-sm text-ink-200">
           <span>
-            Причина изменения <span className="text-moss-400">*</span>
+            Причина изменения <span className="text-moss-600">*</span>
           </span>
           <textarea
             name="reason"
@@ -97,11 +97,11 @@ export function DateOverrideForm({
       </form>
 
       {currentManual ? (
-        <form action={clearFormAction} className="space-y-3 border-t border-ink-700/60 pt-3">
+        <form action={clearFormAction} className="space-y-3 border-t border-ink-700 pt-3">
           <input type="hidden" name="field" value={field} />
           <label className="block space-y-1.5 text-sm text-ink-200">
             <span>
-              Причина удаления корректировки <span className="text-moss-400">*</span>
+              Причина удаления корректировки <span className="text-moss-600">*</span>
             </span>
             <textarea
               name="reason"
@@ -115,7 +115,7 @@ export function DateOverrideForm({
           </label>
           <button
             type="submit"
-            className="rounded border border-red-500/40 px-3 py-2 text-sm text-red-200 hover:bg-red-500/10"
+            className="rounded border border-red-500/40 px-3 py-2 text-sm text-red-700 hover:bg-red-500/10"
           >
             Убрать ручную корректировку
           </button>
@@ -126,4 +126,4 @@ export function DateOverrideForm({
 }
 
 const inputClass =
-  'w-full rounded border border-ink-700 bg-ink-900 px-3 py-2 text-ink-50 outline-none focus:border-moss-500';
+  'w-full rounded border border-ink-700 bg-white px-3 py-2 text-ink-50 outline-none focus:border-moss-500';

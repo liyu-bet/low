@@ -13,7 +13,7 @@ export function WebsiteLifecycle({
     <section className="space-y-4">
       <KeyDatesSection website={website} />
       {intervals.length > 0 ? (
-        <div className="rounded border border-ink-700/60 bg-ink-950/30 px-4 py-3">
+        <div className="rounded border border-ink-700 bg-white/30 px-4 py-3">
           <h3 className="text-sm font-medium text-sand-100">Интервалы</h3>
           <ul className="mt-2 grid gap-2 sm:grid-cols-2">
             {intervals.map((item) => (

@@ -19,9 +19,9 @@ export default async function ReportsPage({
   const data = await getReportsData(query);
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-6">
       <header className="space-y-2">
-        <h1 className="font-display text-3xl text-sand-100">Отчёты</h1>
+        <h1 className="text-3xl font-semibold text-sand-100">Отчёты</h1>
         <p className="max-w-2xl text-sm text-ink-200">
           Аналитика жизненного цикла портфеля: воронка, скорость этапов, группы и активность.
         </p>
@@ -39,14 +39,14 @@ export default async function ReportsPage({
       <WorkActivity rows={data.activity} />
       <TaskReport summary={data.tasks} />
 
-      <section className="rounded border border-ink-700/70 bg-ink-950/40 p-4">
-        <h2 className="font-display text-2xl text-sand-100">Экспорт CSV</h2>
+      <section className="rounded border border-ink-700 bg-white p-4">
+        <h2 className="text-2xl font-semibold text-sand-100">Экспорт CSV</h2>
         <p className="mt-1 text-sm text-ink-200">
           Текущая отфильтрованная выборка, эффективные даты, до 10&nbsp;000 сайтов. UTF-8 BOM.
         </p>
         <a
           href={data.exportHref}
-          className="mt-3 inline-flex rounded bg-moss-600 px-4 py-2 text-sm text-sand-50 hover:bg-moss-500"
+          className="mt-3 inline-flex rounded bg-moss-600 px-4 py-2 text-sm text-white hover:bg-moss-500"
         >
           Скачать low-lifecycle-report.csv
         </a>

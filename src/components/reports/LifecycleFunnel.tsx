@@ -6,7 +6,7 @@ export function LifecycleFunnel({ steps }: { steps: FunnelStep[] }) {
   return (
     <section className="space-y-3">
       <div>
-        <h2 className="font-display text-2xl text-sand-100">Воронка жизненного цикла</h2>
+        <h2 className="text-2xl font-semibold text-sand-100">Воронка жизненного цикла</h2>
         <p className="mt-1 text-sm text-ink-200">
           Доля от предыдущего этапа и от всех сайтов в выборке.
         </p>

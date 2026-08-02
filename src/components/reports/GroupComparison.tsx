@@ -26,7 +26,7 @@ export function GroupComparison({
     <section className="space-y-3">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="font-display text-2xl text-sand-100">Сравнение групп</h2>
+          <h2 className="text-2xl font-semibold text-sand-100">Сравнение групп</h2>
           <p className="mt-1 text-sm text-ink-200">Агрегация по уже загруженной выборке.</p>
         </div>
         <form method="get" action="/reports" className="flex flex-wrap items-center gap-2 text-sm">
@@ -42,7 +42,7 @@ export function GroupComparison({
             <select
               name="groupSort"
               defaultValue={filters.groupSort}
-              className="ml-2 rounded border border-ink-700 bg-ink-950 px-2 py-1.5 text-ink-50"
+              className="ml-2 rounded border border-ink-700 bg-white px-2 py-1.5 text-ink-50"
             >
               {SORT_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -80,7 +80,7 @@ export function GroupComparison({
                 <td className="py-2 pr-2">
                   <Link
                     href={buildReportsQuery({ ...filters, group: row.groupKey })}
-                    className="text-sand-100 hover:text-moss-300"
+                    className="text-sand-100 hover:text-moss-600"
                   >
                     {row.groupLabel}
                   </Link>

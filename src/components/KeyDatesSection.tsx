@@ -26,7 +26,7 @@ export function KeyDatesSection({ website }: { website: Website }) {
   return (
     <section className="space-y-4">
       <div>
-        <h2 className="font-display text-2xl text-sand-100">Ключевые даты</h2>
+        <h2 className="text-2xl font-semibold text-sand-100">Ключевые даты</h2>
         <p className="mt-1 text-sm text-ink-200">
           Итоговое значение, источник и возможность ручной корректировки с записью в журнал.
         </p>
@@ -44,13 +44,13 @@ export function KeyDatesSection({ website }: { website: Website }) {
           return (
             <div
               key={field}
-              className="rounded border border-ink-700/60 bg-ink-950/40 px-4 py-3"
+              className="rounded border border-ink-700 bg-white px-4 py-3"
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <div className="text-xs uppercase tracking-wide text-ink-200">{config.label}</div>
+                  <div className="text-xs font-medium text-ink-200">{config.label}</div>
                   <div className="mt-1 text-base text-sand-100">{formatDateOnlyRu(effective)}</div>
-                  <div className="mt-1 text-xs text-moss-400">{provenanceLabelRu(provenance)}</div>
+                  <div className="mt-1 text-xs text-moss-600">{provenanceLabelRu(provenance)}</div>
                 </div>
                 {!isEditing ? (
                   <button
@@ -92,9 +92,9 @@ export function KeyDatesSection({ website }: { website: Website }) {
           return (
             <div
               key={item.key}
-              className="rounded border border-ink-700/60 bg-ink-950/40 px-4 py-3"
+              className="rounded border border-ink-700 bg-white px-4 py-3"
             >
-              <div className="text-xs uppercase tracking-wide text-ink-200">{item.label}</div>
+              <div className="text-xs font-medium text-ink-200">{item.label}</div>
               <div className="mt-1 text-base text-sand-100">{formatDateOnlyRu(value)}</div>
               <div className="mt-1 text-xs text-ink-200">
                 {value ? 'автоматически · только чтение' : 'нет данных · только чтение'}

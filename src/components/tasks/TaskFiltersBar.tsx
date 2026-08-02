@@ -24,7 +24,7 @@ export function TaskFiltersBar({
   groups: string[];
 }) {
   return (
-    <form method="get" action="/tasks" className="space-y-3 rounded border border-ink-700/70 bg-ink-950/40 p-4">
+    <form method="get" action="/tasks" className="space-y-3 rounded border border-ink-700 bg-white p-4">
       <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
         <label className="block text-sm text-ink-200">
           Поиск
@@ -32,7 +32,7 @@ export function TaskFiltersBar({
             name="q"
             defaultValue={filters.q}
             placeholder="Название, описание или домен"
-            className="mt-1 w-full rounded border border-ink-700 bg-ink-950 px-3 py-2 text-ink-50"
+            className="mt-1 w-full rounded border border-ink-700 bg-white px-3 py-2 text-ink-50"
           />
         </label>
         <label className="block text-sm text-ink-200">
@@ -40,7 +40,7 @@ export function TaskFiltersBar({
           <select
             name="focus"
             defaultValue={filters.focus}
-            className="mt-1 w-full rounded border border-ink-700 bg-ink-950 px-3 py-2 text-ink-50"
+            className="mt-1 w-full rounded border border-ink-700 bg-white px-3 py-2 text-ink-50"
           >
             {FOCUS_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
@@ -54,7 +54,7 @@ export function TaskFiltersBar({
           <select
             name="websiteId"
             defaultValue={filters.websiteId}
-            className="mt-1 w-full rounded border border-ink-700 bg-ink-950 px-3 py-2 text-ink-50"
+            className="mt-1 w-full rounded border border-ink-700 bg-white px-3 py-2 text-ink-50"
           >
             <option value="">Все сайты</option>
             {websites.map((site) => (
@@ -69,7 +69,7 @@ export function TaskFiltersBar({
           <select
             name="group"
             defaultValue={filters.group}
-            className="mt-1 w-full rounded border border-ink-700 bg-ink-950 px-3 py-2 text-ink-50"
+            className="mt-1 w-full rounded border border-ink-700 bg-white px-3 py-2 text-ink-50"
           >
             <option value="">Все группы</option>
             {groups.map((group) => (
@@ -84,7 +84,7 @@ export function TaskFiltersBar({
           <select
             name="priority"
             defaultValue={filters.priority}
-            className="mt-1 w-full rounded border border-ink-700 bg-ink-950 px-3 py-2 text-ink-50"
+            className="mt-1 w-full rounded border border-ink-700 bg-white px-3 py-2 text-ink-50"
           >
             <option value="">Любой</option>
             {Object.entries(TASK_PRIORITY_LABELS).map(([value, label]) => (
@@ -99,7 +99,7 @@ export function TaskFiltersBar({
           <select
             name="status"
             defaultValue={filters.status}
-            className="mt-1 w-full rounded border border-ink-700 bg-ink-950 px-3 py-2 text-ink-50"
+            className="mt-1 w-full rounded border border-ink-700 bg-white px-3 py-2 text-ink-50"
           >
             <option value="">Любой</option>
             {Object.entries(TASK_STATUS_LABELS).map(([value, label]) => (
@@ -113,7 +113,7 @@ export function TaskFiltersBar({
       <div className="flex flex-wrap gap-3">
         <button
           type="submit"
-          className="rounded bg-moss-500 px-3 py-2 text-sm font-semibold text-ink-950 hover:bg-moss-400"
+          className="rounded bg-moss-500 px-3 py-2 text-sm font-semibold text-white hover:bg-moss-600"
         >
           Применить
         </button>

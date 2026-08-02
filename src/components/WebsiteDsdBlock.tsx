@@ -25,7 +25,7 @@ export function WebsiteDsdBlock({ integration }: { integration: WebsiteIntegrati
   return (
     <section className="space-y-3">
       <div>
-        <h2 className="font-display text-2xl text-sand-100">DSD</h2>
+        <h2 className="text-2xl font-semibold text-sand-100">DSD</h2>
         <p className="mt-1 text-sm text-ink-200">Снимок read-only данных из DSD (без секретов).</p>
       </div>
       <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -64,8 +64,8 @@ export function WebsiteDsdBlock({ integration }: { integration: WebsiteIntegrati
 
 function Meta({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded border border-ink-700/60 bg-ink-950/40 px-4 py-3">
-      <dt className="text-xs uppercase tracking-wide text-ink-200">{label}</dt>
+    <div className="rounded border border-ink-700 bg-white px-4 py-3">
+      <dt className="text-xs font-medium text-ink-200">{label}</dt>
       <dd className="mt-1 break-words text-sm text-ink-50">{value}</dd>
     </div>
   );

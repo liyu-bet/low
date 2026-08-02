@@ -24,7 +24,7 @@ function TaskGroup({
 }) {
   return (
     <div className="space-y-3">
-      <h3 className={`text-sm uppercase tracking-wide ${emphasize ? 'text-red-200' : 'text-ink-200'}`}>
+      <h3 className={`text-sm font-medium ${emphasize ? 'text-red-700' : 'text-ink-200'}`}>
         {title}
       </h3>
       {tasks.length === 0 ? (
@@ -34,13 +34,13 @@ function TaskGroup({
           {tasks.map((task) => (
             <li
               key={task.id}
-              className="rounded border border-ink-700/70 bg-ink-950/40 px-4 py-3"
+              className="rounded border border-ink-700 bg-white px-4 py-3"
             >
               <div>
                 <p className="font-medium text-sand-100">{task.title}</p>
                 <p className="mt-1 text-xs text-ink-200">
                   {labelTaskPriority(task.priority)} · {labelTaskStatus(task.status)} ·{' '}
-                  <span className={task.dueBucket === 'overdue' ? 'text-red-200' : ''}>
+                  <span className={task.dueBucket === 'overdue' ? 'text-red-700' : ''}>
                     {task.dueRelative}
                   </span>
                 </p>
@@ -82,12 +82,12 @@ export function WebsiteTasksBlock({
     <section id="tasks" className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="font-display text-2xl text-sand-100">Задачи</h2>
+          <h2 className="text-2xl font-semibold text-sand-100">Задачи</h2>
           <p className="mt-1 text-sm text-ink-200">Открытые планы и недавние выполненные работы.</p>
         </div>
         <Link
           href={`/tasks?websiteId=${websiteId}`}
-          className="text-sm text-moss-400 hover:text-moss-300"
+          className="text-sm text-moss-600 hover:text-moss-600"
         >
           Все задачи сайта
         </Link>
@@ -124,7 +124,7 @@ export function WebsiteTasksBlock({
       )}
 
       <div className="space-y-3">
-        <h3 className="text-sm uppercase tracking-wide text-ink-200">Последние выполненные</h3>
+        <h3 className="text-sm font-medium text-ink-200">Последние выполненные</h3>
         {data.recentDone.length === 0 ? (
           <p className="text-sm text-ink-200">Выполненных задач пока нет.</p>
         ) : (

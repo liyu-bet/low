@@ -66,14 +66,14 @@ function PendingButton({
 function Message({ state }: { state: BulkActionState }) {
   if (state.error) {
     return (
-      <p className="rounded border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+      <p className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
         {state.error}
       </p>
     );
   }
   if (state.ok && state.message) {
     return (
-      <p className="rounded border border-moss-500/40 bg-moss-500/10 px-3 py-2 text-sm text-moss-400">
+      <p className="rounded border border-moss-500/40 bg-moss-50 px-3 py-2 text-sm text-moss-600">
         {state.message}
       </p>
     );
@@ -213,17 +213,17 @@ export function WebsitesBulkPanel({
   if (selectedIds.length === 0) return null;
 
   const fieldClass =
-    'mt-1 w-full rounded border border-ink-700 bg-ink-950 px-3 py-2 text-sm text-ink-50';
+    'mt-1 w-full rounded border border-ink-700 bg-white px-3 py-2 text-sm text-ink-50';
   const btnSecondary =
     'rounded border border-ink-700 px-3 py-1.5 text-sm text-ink-100 hover:border-moss-500';
   const btnPrimary =
-    'rounded bg-moss-500 px-3 py-2 text-sm font-semibold text-ink-950 hover:bg-moss-400 disabled:opacity-60';
+    'rounded bg-moss-500 px-3 py-2 text-sm font-semibold text-white hover:bg-moss-600 disabled:opacity-60';
 
   return (
-    <div className="sticky bottom-3 z-20 rounded border border-moss-500/40 bg-ink-950/95 p-4 shadow-lg backdrop-blur">
+    <div className="sticky bottom-3 z-20 rounded border border-moss-500/40 bg-ink-950/95 p-4 shadow-lg">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-sand-100">
-          Выбрано: <span className="font-display text-2xl">{selectedIds.length}</span>
+          Выбрано: <span className="text-2xl font-semibold">{selectedIds.length}</span>
         </p>
         <button type="button" onClick={onClearSelection} className={btnSecondary}>
           Снять выделение
@@ -414,7 +414,7 @@ export function WebsitesBulkPanel({
         {action === 'archive' ? (
           <form action={archiveAction} className="space-y-3">
             <input type="hidden" name="websiteIds" value={websiteIdsJson} />
-            <p className="text-sm text-red-200">
+            <p className="text-sm text-red-700">
               Архивировать {selectedIds.length} сайтов? Отменить это действие через интерфейс пока
               нельзя.
             </p>
@@ -425,7 +425,7 @@ export function WebsitesBulkPanel({
             <PendingButton
               label="Архивировать"
               pendingLabel="Архивация…"
-              className="rounded border border-red-500/50 px-3 py-2 text-sm text-red-200 hover:bg-red-500/10 disabled:opacity-60"
+              className="rounded border border-red-500/50 px-3 py-2 text-sm text-red-700 hover:bg-red-500/10 disabled:opacity-60"
             />
             <Message state={archiveState} />
           </form>

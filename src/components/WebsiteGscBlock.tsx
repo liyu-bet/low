@@ -29,7 +29,7 @@ export function WebsiteGscBlock({
   return (
     <section className="space-y-4">
       <div>
-        <h2 className="font-display text-2xl text-sand-100">GSC</h2>
+        <h2 className="text-2xl font-semibold text-sand-100">GSC</h2>
         <p className="mt-1 text-sm text-ink-200">
           Связано properties: {integrations.length}. Read-only снимок Search Console. Дата
           обнаружения — первый импорт в приложение GSC; показы/клики — earliest available в API, не
@@ -52,7 +52,7 @@ export function WebsiteGscBlock({
           return (
             <div
               key={integration.id}
-              className="space-y-3 rounded border border-ink-700/60 bg-ink-950/40 px-4 py-3"
+              className="space-y-3 rounded border border-ink-700 bg-white px-4 py-3"
             >
               <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 <Meta label="Property URL" value={snapshot?.siteUrl ?? integration.externalKey ?? '—'} />
@@ -89,7 +89,7 @@ export function WebsiteGscBlock({
 function Meta({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-xs uppercase tracking-wide text-ink-200">{label}</dt>
+      <dt className="text-xs font-medium text-ink-200">{label}</dt>
       <dd className="mt-1 break-words text-sm text-ink-50">{value}</dd>
     </div>
   );

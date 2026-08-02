@@ -21,12 +21,12 @@ export function TaskReport({ summary }: { summary: TaskReportSummary }) {
     <section className="space-y-3">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <div>
-          <h2 className="font-display text-2xl text-sand-100">Задачи</h2>
+          <h2 className="text-2xl font-semibold text-sand-100">Задачи</h2>
           <p className="mt-1 text-sm text-ink-200">
             Отменённые задачи не считаются выполненными. Без даты выполнения — вне длительности.
           </p>
         </div>
-        <Link href="/tasks" className="text-sm text-moss-300 hover:text-moss-200">
+        <Link href="/tasks" className="text-sm text-moss-600 hover:text-moss-200">
           Все задачи →
         </Link>
       </div>
@@ -34,10 +34,10 @@ export function TaskReport({ summary }: { summary: TaskReportSummary }) {
         {cards.map((card) => (
           <div
             key={card.label}
-            className="rounded border border-ink-700/70 bg-ink-950/40 px-3 py-3"
+            className="rounded border border-ink-700 bg-white px-3 py-3"
           >
-            <div className="text-xs uppercase tracking-wide text-ink-300">{card.label}</div>
-            <div className="mt-1 font-display text-xl text-sand-100">{card.value}</div>
+            <div className="text-xs font-medium text-ink-200">{card.label}</div>
+            <div className="mt-1 text-xl font-semibold text-sand-100">{card.value}</div>
           </div>
         ))}
       </div>

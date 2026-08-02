@@ -10,7 +10,7 @@ export function DurationSummary({ rows }: { rows: DurationMetricRow[] }) {
   return (
     <section className="space-y-3">
       <div>
-        <h2 className="font-display text-2xl text-sand-100">Скорость прохождения этапов</h2>
+        <h2 className="text-2xl font-semibold text-sand-100">Скорость прохождения этапов</h2>
         <p className="mt-1 text-sm text-ink-200">
           Календарные дни. Главный показатель — медиана. Отрицательные интервалы не входят в расчёт.
         </p>
@@ -34,7 +34,7 @@ export function DurationSummary({ rows }: { rows: DurationMetricRow[] }) {
               <tr key={row.key} className="border-b border-ink-900/80 text-ink-100">
                 <td className="py-2 pr-3 text-sand-100">{row.label}</td>
                 <td className="py-2 pr-3">{row.summary.count}</td>
-                <td className="py-2 pr-3 font-medium text-moss-300">{fmt(row.summary.median)}</td>
+                <td className="py-2 pr-3 font-medium text-moss-600">{fmt(row.summary.median)}</td>
                 <td className="py-2 pr-3">{fmt(row.summary.mean)}</td>
                 <td className="py-2 pr-3">{fmt(row.summary.min)}</td>
                 <td className="py-2 pr-3">{fmt(row.summary.p25)}</td>

@@ -117,7 +117,7 @@ export function EventTimeline({ events }: { events: WebsiteEvent[] }) {
             ) : null}
 
             {overrideMeta ? (
-              <div className="mt-2 space-y-1 rounded border border-ink-700/50 bg-ink-900/40 px-3 py-2 text-xs text-ink-200">
+              <div className="mt-2 space-y-1 rounded border border-ink-700 bg-ink-900 px-3 py-2 text-xs text-ink-200">
                 <div>
                   Поле: <span className="text-ink-100">{overrideMeta.fieldLabel}</span>
                 </div>
@@ -139,7 +139,7 @@ export function EventTimeline({ events }: { events: WebsiteEvent[] }) {
             ) : null}
 
             {gscMeta ? (
-              <div className="mt-2 space-y-1 rounded border border-ink-700/50 bg-ink-900/40 px-3 py-2 text-xs text-ink-200">
+              <div className="mt-2 space-y-1 rounded border border-ink-700 bg-ink-900 px-3 py-2 text-xs text-ink-200">
                 {typeof gscMeta.dateMeaning === 'string' ? (
                   <div>
                     Смысл даты:{' '}
@@ -176,7 +176,7 @@ export function EventTimeline({ events }: { events: WebsiteEvent[] }) {
             ) : null}
 
             {(amount || quantity) && (
-              <div className="mt-1 text-xs text-moss-400">
+              <div className="mt-1 text-xs text-moss-600">
                 {[amount, quantity].filter(Boolean).join(' · ')}
               </div>
             )}

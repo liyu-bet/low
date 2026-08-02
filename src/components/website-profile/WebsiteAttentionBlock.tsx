@@ -8,8 +8,8 @@ function priorityLabel(priority: AttentionItem['priority']): string {
 }
 
 function priorityClass(priority: AttentionItem['priority']): string {
-  if (priority === 'critical') return 'text-red-200';
-  if (priority === 'high') return 'text-amber-200';
+  if (priority === 'critical') return 'text-red-700';
+  if (priority === 'high') return 'text-amber-800';
   return 'text-ink-100';
 }
 
@@ -44,10 +44,10 @@ export function WebsiteAttentionBlock({
   websiteId: string;
 }) {
   return (
-    <section className="space-y-3 rounded border border-ink-700/70 bg-ink-950/40 p-4">
-      <h2 className="font-display text-2xl text-sand-100">Требует внимания</h2>
+    <section className="space-y-3 rounded border border-ink-700 bg-white p-4">
+      <h2 className="text-2xl font-semibold text-sand-100">Требует внимания</h2>
       {!attention || attention.reasons.length === 0 ? (
-        <p className="text-sm text-moss-400">Сайт не требует внимания</p>
+        <p className="text-sm text-moss-600">Сайт не требует внимания</p>
       ) : (
         <div className="space-y-3">
           <p className={`text-sm font-medium ${priorityClass(attention.priority)}`}>
@@ -59,7 +59,7 @@ export function WebsiteAttentionBlock({
               return (
                 <li
                   key={reason.code + reason.label}
-                  className="rounded border border-ink-700/60 px-3 py-2 text-sm"
+                  className="rounded border border-ink-700 px-3 py-2 text-sm"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
@@ -70,7 +70,7 @@ export function WebsiteAttentionBlock({
                     </div>
                     {action ? (
                       action.href.startsWith('#') || action.href.startsWith('/') ? (
-                        <Link href={action.href} className="text-moss-400 hover:text-moss-300">
+                        <Link href={action.href} className="text-moss-600 hover:text-moss-600">
                           {action.label}
                         </Link>
                       ) : null

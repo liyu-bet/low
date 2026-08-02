@@ -88,7 +88,7 @@ function SortMark({ active, dir }: { active: boolean; dir: SortDir }) {
   if (!active) {
     return <span className="ml-1 text-ink-700">↕</span>;
   }
-  return <span className="ml-1 text-moss-400">{dir === 'asc' ? '↑' : '↓'}</span>;
+  return <span className="ml-1 text-moss-600">{dir === 'asc' ? '↑' : '↓'}</span>;
 }
 
 export function WebsitesTable({ websites }: { websites: WebsiteTableRow[] }) {
@@ -174,7 +174,7 @@ export function WebsitesTable({ websites }: { websites: WebsiteTableRow[] }) {
           onChange={(event) => setQuery(event.target.value)}
           placeholder="Поиск по домену, названию, группе…"
           autoComplete="off"
-          className="w-full max-w-md rounded border border-ink-700 bg-ink-950 px-3 py-2 text-sm text-ink-50 placeholder:text-ink-400 focus:border-moss-500 focus:outline-none"
+          className="w-full max-w-md rounded border border-ink-700 bg-white px-3 py-2 text-sm text-ink-50 placeholder:text-ink-400 focus:border-moss-500 focus:outline-none"
         />
         <span className="text-sm text-ink-200">
           {filteredSorted.length === websites.length
@@ -216,8 +216,8 @@ export function WebsitesTable({ websites }: { websites: WebsiteTableRow[] }) {
               return (
                 <li
                   key={site.id}
-                  className={`rounded border border-ink-700/70 bg-ink-950/40 p-3 ${
-                    selected ? 'border-moss-600/60 bg-moss-500/10' : ''
+                  className={`rounded border border-ink-700 bg-white p-3 ${
+                    selected ? 'border-moss-600/60 bg-moss-50' : ''
                   }`}
                 >
                   <div className="flex items-start gap-3">
@@ -249,9 +249,9 @@ export function WebsitesTable({ websites }: { websites: WebsiteTableRow[] }) {
             })}
           </ul>
 
-          <div className="hidden overflow-x-auto rounded border border-ink-700/70 md:block">
+          <div className="hidden overflow-x-auto rounded border border-ink-700 md:block">
             <table className="min-w-full text-left text-sm">
-              <thead className="bg-ink-900/80 text-ink-200">
+              <thead className="bg-ink-900 text-ink-200">
                 <tr>
                   <th className="w-10 px-3 py-3">
                     <label className="inline-flex items-center gap-2">
@@ -285,8 +285,8 @@ export function WebsitesTable({ websites }: { websites: WebsiteTableRow[] }) {
                   return (
                     <tr
                       key={site.id}
-                      className={`border-t border-ink-700/50 hover:bg-ink-900/40 ${
-                        selected ? 'bg-moss-500/10' : ''
+                      className={`border-t border-ink-700 hover:bg-ink-900 ${
+                        selected ? 'bg-moss-50' : ''
                       }`}
                     >
                       <td className="px-3 py-3">

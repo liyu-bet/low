@@ -28,7 +28,7 @@ export function DashboardFiltersBar({
   groups: string[];
 }) {
   return (
-    <form method="get" action="/dashboard" className="space-y-3 rounded border border-ink-700/70 bg-ink-950/40 p-4">
+    <form method="get" action="/dashboard" className="space-y-3 rounded border border-ink-700 bg-white p-4">
       <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
         <label className="block text-sm text-ink-200">
           Поиск
@@ -36,7 +36,7 @@ export function DashboardFiltersBar({
             name="q"
             defaultValue={filters.q}
             placeholder="Домен или название"
-            className="mt-1 w-full rounded border border-ink-700 bg-ink-950 px-3 py-2 text-ink-50"
+            className="mt-1 w-full rounded border border-ink-700 bg-white px-3 py-2 text-ink-50"
           />
         </label>
         <label className="block text-sm text-ink-200">
@@ -44,7 +44,7 @@ export function DashboardFiltersBar({
           <select
             name="focus"
             defaultValue={filters.focus}
-            className="mt-1 w-full rounded border border-ink-700 bg-ink-950 px-3 py-2 text-ink-50"
+            className="mt-1 w-full rounded border border-ink-700 bg-white px-3 py-2 text-ink-50"
           >
             {FOCUS_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
@@ -58,7 +58,7 @@ export function DashboardFiltersBar({
           <select
             name="priority"
             defaultValue={filters.priority}
-            className="mt-1 w-full rounded border border-ink-700 bg-ink-950 px-3 py-2 text-ink-50"
+            className="mt-1 w-full rounded border border-ink-700 bg-white px-3 py-2 text-ink-50"
           >
             {PRIORITY_OPTIONS.map((opt) => (
               <option key={opt.value || 'any'} value={opt.value}>
@@ -72,7 +72,7 @@ export function DashboardFiltersBar({
           <select
             name="group"
             defaultValue={filters.group}
-            className="mt-1 w-full rounded border border-ink-700 bg-ink-950 px-3 py-2 text-ink-50"
+            className="mt-1 w-full rounded border border-ink-700 bg-white px-3 py-2 text-ink-50"
           >
             <option value="">Все группы</option>
             {groups.map((group) => (
@@ -87,7 +87,7 @@ export function DashboardFiltersBar({
           <select
             name="stage"
             defaultValue={filters.stage}
-            className="mt-1 w-full rounded border border-ink-700 bg-ink-950 px-3 py-2 text-ink-50"
+            className="mt-1 w-full rounded border border-ink-700 bg-white px-3 py-2 text-ink-50"
           >
             <option value="">Все этапы</option>
             {Object.entries(LIFECYCLE_STAGE_LABELS).map(([value, label]) => (
@@ -101,7 +101,7 @@ export function DashboardFiltersBar({
       <div className="flex flex-wrap gap-3">
         <button
           type="submit"
-          className="rounded bg-moss-500 px-3 py-2 text-sm font-semibold text-ink-950 hover:bg-moss-400"
+          className="rounded bg-moss-500 px-3 py-2 text-sm font-semibold text-white hover:bg-moss-600"
         >
           Применить
         </button>
