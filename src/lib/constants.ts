@@ -24,6 +24,19 @@ export const APP_FULL_NAME = 'The Life of Websites';
 export const AUTH_COOKIE_NAME = 'low_session';
 export const SESSION_TTL_SECONDS = 60 * 60 * 24 * 14;
 
-export const DSD_SYNC_JOB_TYPE = 'manual_full_sync';
-export const GSC_PROPERTIES_SYNC_JOB_TYPE = 'manual_properties_sync';
-export const GSC_LIFECYCLE_SYNC_JOB_TYPE = 'manual_lifecycle_sync';
+/** Canonical job types for SyncRun (manual + worker). */
+export const DSD_SYNC_JOB_TYPE = 'dsd_sites_sync';
+export const GSC_PROPERTIES_SYNC_JOB_TYPE = 'gsc_properties_sync';
+export const GSC_LIFECYCLE_SYNC_JOB_TYPE = 'gsc_lifecycle_sync';
+
+/** Legacy jobType values still readable for history. */
+export const DSD_SYNC_JOB_TYPE_LEGACY = 'manual_full_sync';
+export const GSC_PROPERTIES_SYNC_JOB_TYPE_LEGACY = 'manual_properties_sync';
+export const GSC_LIFECYCLE_SYNC_JOB_TYPE_LEGACY = 'manual_lifecycle_sync';
+
+export const SYNC_TRIGGER_MANUAL = 'manual';
+export const SYNC_TRIGGER_WORKER = 'worker';
+
+export const JOB_LOCK_DSD = 'job:dsd_sites_sync';
+export const JOB_LOCK_GSC_PROPERTIES = 'job:gsc_properties_sync';
+export const JOB_LOCK_GSC_LIFECYCLE = 'job:gsc_lifecycle_sync';

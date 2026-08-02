@@ -13,12 +13,14 @@ import {
   EVENT_TYPE_GSC_FIRST_IMPRESSION,
   EVENT_TYPE_GSC_FIRST_IMPRESSION_REFINED,
   GSC_LIFECYCLE_SYNC_JOB_TYPE,
+  JOB_LOCK_GSC_LIFECYCLE,
 } from '@/lib/constants';
 import { parseDateOnly, dateOnlyToInputValue } from '@/lib/dates/date-only';
 import { prisma } from '@/lib/db/prisma';
 import { fetchGscPropertyLifecycle, GscApiError, type GscFetch } from '@/lib/gsc/client';
 import { requireGscClientConfig, type GscClientConfig } from '@/lib/gsc/config';
 import type { GscLifecycle } from '@/lib/gsc/schemas';
+import { acquireJobLock, releaseJobLock } from '@/lib/worker/locks';
 
 export type GscLifecycleSyncSummary = {
   syncRunId: string;
@@ -232,154 +234,255 @@ export async function applyLifecycleToWebsite(input: {
   return { firstImpressionDatesCreated, firstClickDatesCreated, eventsCreated };
 }
 
-export async function runManualGscLifecycleSync(options: {
-  session: AdminSession | null | undefined;
+export async function runGscLifecycleSync(options: {
+  trigger: 'manual' | 'worker';
+  session?: AdminSession | null;
+  workerId?: string;
+  scheduledFor?: string | null;
+  lockTtlMs?: number;
   config?: GscClientConfig;
   fetchImpl?: GscFetch;
 }): Promise<GscLifecycleSyncSummary> {
-  assertAuthenticated(options.session);
+  if (options.trigger === 'manual') {
+    assertAuthenticated(options.session);
+  }
+
   const config = options.config ?? requireGscClientConfig();
+  const owner =
+    options.trigger === 'worker'
+      ? options.workerId ?? `worker:${process.pid}`
+      : `manual:${options.session!.email}`;
+  const lockTtlMs = options.lockTtlMs ?? 45 * 60_000;
+
+  const lock = await acquireJobLock({
+    lockId: JOB_LOCK_GSC_LIFECYCLE,
+    owner,
+    ttlMs: lockTtlMs,
+  });
+  if (!lock.ok) {
+    const skipped = await prisma.syncRun.create({
+      data: {
+        system: IntegrationSystem.GSC,
+        jobType: GSC_LIFECYCLE_SYNC_JOB_TYPE,
+        trigger: options.trigger,
+        status: SyncRunStatus.SKIPPED,
+        finishedAt: new Date(),
+        error: 'Синхронизация уже выполняется',
+        metadata: {
+          provider: 'gsc',
+          jobType: GSC_LIFECYCLE_SYNC_JOB_TYPE,
+          trigger: options.trigger,
+          skippedReason: 'active_lock',
+        },
+      },
+    });
+    return {
+      syncRunId: skipped.id,
+      status: skipped.status,
+      processed: 0,
+      createdCount: 0,
+      updatedCount: 0,
+      errorCount: 0,
+      error: skipped.error,
+      metadata: (skipped.metadata as Record<string, unknown>) ?? {},
+    };
+  }
 
   const syncRun = await prisma.syncRun.create({
     data: {
       system: IntegrationSystem.GSC,
       jobType: GSC_LIFECYCLE_SYNC_JOB_TYPE,
+      trigger: options.trigger,
       status: SyncRunStatus.RUNNING,
-      metadata: { provider: 'gsc', jobType: GSC_LIFECYCLE_SYNC_JOB_TYPE },
+      metadata: {
+        provider: 'gsc',
+        jobType: GSC_LIFECYCLE_SYNC_JOB_TYPE,
+        trigger: options.trigger,
+        workerId: options.workerId ?? null,
+        scheduledFor: options.scheduledFor ?? null,
+      },
     },
   });
 
-  const eligible = await prisma.websiteIntegration.findMany({
-    where: {
-      system: IntegrationSystem.GSC,
-      status: IntegrationStatus.LINKED,
-      externalEntityId: { not: null },
-      website: {
-        OR: [{ firstImpressionAt: null }, { firstClickAt: null }],
-      },
-    },
-    include: {
-      website: {
-        select: {
-          id: true,
-          firstImpressionAt: true,
-          firstClickAt: true,
+  try {
+    const eligible = await prisma.websiteIntegration.findMany({
+      where: {
+        system: IntegrationSystem.GSC,
+        status: IntegrationStatus.LINKED,
+        externalEntityId: { not: null },
+        website: {
+          OR: [{ firstImpressionAt: null }, { firstClickAt: null }],
         },
       },
-    },
-    orderBy: { updatedAt: 'asc' },
-  });
+      include: {
+        website: {
+          select: {
+            id: true,
+            firstImpressionAt: true,
+            firstClickAt: true,
+          },
+        },
+      },
+      orderBy: { updatedAt: 'asc' },
+    });
 
-  const capped = eligible.slice(0, config.lifecycleMaxPropertiesPerRun);
-  const skippedProperties = Math.max(0, eligible.length - capped.length);
+    const capped = eligible.slice(0, config.lifecycleMaxPropertiesPerRun);
+    const skippedProperties = Math.max(0, eligible.length - capped.length);
 
-  let processedProperties = 0;
-  let firstImpressionDatesCreated = 0;
-  let firstClickDatesCreated = 0;
-  let eventsCreated = 0;
-  let errorCount = 0;
-  const errors: Array<{ propertyId?: string; message: string }> = [];
-  const inFlight = new Set<string>();
+    let processedProperties = 0;
+    let firstImpressionDatesCreated = 0;
+    let firstClickDatesCreated = 0;
+    let eventsCreated = 0;
+    let errorCount = 0;
+    const errors: Array<{ propertyId?: string; message: string }> = [];
+    const inFlight = new Set<string>();
 
-  const results = await mapWithConcurrency(capped, config.lifecycleConcurrency, async (row) => {
-    const propertyId = row.externalEntityId;
-    if (!propertyId) {
-      return { ok: false as const, message: 'Нет externalEntityId' };
-    }
-    if (inFlight.has(propertyId)) {
-      return { ok: false as const, message: 'Повторный параллельный запрос к той же property' };
-    }
-    inFlight.add(propertyId);
-    try {
-      // Skip if both automatic dates already set (race-safe re-check)
-      if (row.website.firstImpressionAt != null && row.website.firstClickAt != null) {
-        return { ok: true as const, skipped: true };
+    const results = await mapWithConcurrency(capped, config.lifecycleConcurrency, async (row) => {
+      const propertyId = row.externalEntityId;
+      if (!propertyId) {
+        return { ok: false as const, message: 'Нет externalEntityId' };
       }
+      if (inFlight.has(propertyId)) {
+        return { ok: false as const, message: 'Повторный параллельный запрос к той же property' };
+      }
+      inFlight.add(propertyId);
+      try {
+        if (row.website.firstImpressionAt != null && row.website.firstClickAt != null) {
+          return { ok: true as const, skipped: true };
+        }
 
-      const lifecycle = await fetchGscPropertyLifecycle(propertyId, config, options.fetchImpl);
-      const applied = await applyLifecycleToWebsite({
-        websiteId: row.websiteId,
-        propertyId,
-        siteUrl:
-          typeof row.externalKey === 'string' && row.externalKey
-            ? row.externalKey
-            : lifecycle.siteUrl,
-        lifecycle,
-      });
-      return { ok: true as const, skipped: false, applied };
-    } catch (error) {
-      const message =
-        error instanceof GscApiError
-          ? error.message
-          : error instanceof Error
+        const lifecycle = await fetchGscPropertyLifecycle(propertyId, config, options.fetchImpl);
+        const applied = await applyLifecycleToWebsite({
+          websiteId: row.websiteId,
+          propertyId,
+          siteUrl:
+            typeof row.externalKey === 'string' && row.externalKey
+              ? row.externalKey
+              : lifecycle.siteUrl,
+          lifecycle,
+        });
+        return { ok: true as const, skipped: false, applied };
+      } catch (error) {
+        const message =
+          error instanceof GscApiError
             ? error.message
-            : 'Ошибка lifecycle';
-      return { ok: false as const, message, propertyId };
-    } finally {
-      inFlight.delete(propertyId);
+            : error instanceof Error
+              ? error.message
+              : 'Ошибка lifecycle';
+        return { ok: false as const, message, propertyId };
+      } finally {
+        inFlight.delete(propertyId);
+      }
+    });
+
+    for (const result of results) {
+      if (!result.ok) {
+        errorCount += 1;
+        errors.push({ propertyId: result.propertyId, message: result.message });
+        continue;
+      }
+      if (result.skipped) continue;
+      processedProperties += 1;
+      if (result.applied) {
+        firstImpressionDatesCreated += result.applied.firstImpressionDatesCreated;
+        firstClickDatesCreated += result.applied.firstClickDatesCreated;
+        eventsCreated += result.applied.eventsCreated;
+      }
     }
-  });
 
-  for (const result of results) {
-    if (!result.ok) {
-      errorCount += 1;
-      errors.push({ propertyId: result.propertyId, message: result.message });
-      continue;
-    }
-    if (result.skipped) continue;
-    processedProperties += 1;
-    if (result.applied) {
-      firstImpressionDatesCreated += result.applied.firstImpressionDatesCreated;
-      firstClickDatesCreated += result.applied.firstClickDatesCreated;
-      eventsCreated += result.applied.eventsCreated;
-    }
-  }
+    const status =
+      errorCount === 0
+        ? SyncRunStatus.SUCCESS
+        : processedProperties > 0 || capped.length > errorCount
+          ? SyncRunStatus.PARTIAL
+          : SyncRunStatus.FAILED;
 
-  const status =
-    errorCount === 0
-      ? SyncRunStatus.SUCCESS
-      : processedProperties > 0 || capped.length > errorCount
-        ? SyncRunStatus.PARTIAL
-        : SyncRunStatus.FAILED;
+    const metadata = {
+      provider: 'gsc',
+      jobType: GSC_LIFECYCLE_SYNC_JOB_TYPE,
+      trigger: options.trigger,
+      workerId: options.workerId ?? null,
+      scheduledFor: options.scheduledFor ?? null,
+      eligibleProperties: eligible.length,
+      processedProperties,
+      skippedProperties,
+      firstImpressionDatesCreated,
+      firstClickDatesCreated,
+      eventsCreated,
+      concurrency: config.lifecycleConcurrency,
+      maxPropertiesPerRun: config.lifecycleMaxPropertiesPerRun,
+      errors: errors.slice(0, 50),
+    };
 
-  const metadata = {
-    provider: 'gsc',
-    jobType: GSC_LIFECYCLE_SYNC_JOB_TYPE,
-    eligibleProperties: eligible.length,
-    processedProperties,
-    skippedProperties,
-    firstImpressionDatesCreated,
-    firstClickDatesCreated,
-    eventsCreated,
-    concurrency: config.lifecycleConcurrency,
-    maxPropertiesPerRun: config.lifecycleMaxPropertiesPerRun,
-    errors: errors.slice(0, 50),
-  };
+    const finished = await prisma.syncRun.update({
+      where: { id: syncRun.id },
+      data: {
+        status,
+        finishedAt: new Date(),
+        itemsRead: eligible.length,
+        itemsWritten: firstImpressionDatesCreated + firstClickDatesCreated,
+        processed: processedProperties,
+        createdCount: firstImpressionDatesCreated + firstClickDatesCreated,
+        updatedCount: eventsCreated,
+        errorCount,
+        error: errorCount > 0 ? `${errorCount} property с ошибками lifecycle` : null,
+        metadata,
+      },
+    });
 
-  const finished = await prisma.syncRun.update({
-    where: { id: syncRun.id },
-    data: {
-      status,
-      finishedAt: new Date(),
-      itemsRead: eligible.length,
-      itemsWritten: firstImpressionDatesCreated + firstClickDatesCreated,
+    return {
+      syncRunId: finished.id,
+      status: finished.status,
       processed: processedProperties,
-      createdCount: firstImpressionDatesCreated + firstClickDatesCreated,
-      updatedCount: eventsCreated,
+      createdCount: finished.createdCount,
+      updatedCount: finished.updatedCount,
       errorCount,
-      error: errorCount > 0 ? `${errorCount} property с ошибками lifecycle` : null,
+      error: finished.error,
       metadata,
-    },
-  });
-
-  return {
-    syncRunId: finished.id,
-    status: finished.status,
-    processed: processedProperties,
-    createdCount: finished.createdCount,
-    updatedCount: finished.updatedCount,
-    errorCount,
-    error: finished.error,
-    metadata,
-  };
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Синхронизация GSC lifecycle не удалась';
+    const finished = await prisma.syncRun.update({
+      where: { id: syncRun.id },
+      data: {
+        status: SyncRunStatus.FAILED,
+        finishedAt: new Date(),
+        error: message,
+        errorCount: 1,
+        metadata: {
+          provider: 'gsc',
+          jobType: GSC_LIFECYCLE_SYNC_JOB_TYPE,
+          trigger: options.trigger,
+          workerId: options.workerId ?? null,
+          fatal: message,
+        },
+      },
+    });
+    return {
+      syncRunId: finished.id,
+      status: finished.status,
+      processed: 0,
+      createdCount: 0,
+      updatedCount: 0,
+      errorCount: 1,
+      error: finished.error,
+      metadata: (finished.metadata as Record<string, unknown>) ?? {},
+    };
+  } finally {
+    await releaseJobLock({ lockId: JOB_LOCK_GSC_LIFECYCLE, owner });
+  }
 }
+
+export async function runManualGscLifecycleSync(options: {
+  session: AdminSession | null | undefined;
+  config?: GscClientConfig;
+  fetchImpl?: GscFetch;
+}): Promise<GscLifecycleSyncSummary> {
+  return runGscLifecycleSync({
+    trigger: 'manual',
+    session: options.session,
+    config: options.config,
+    fetchImpl: options.fetchImpl,
+  });
+}
+

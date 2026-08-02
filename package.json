@@ -7,7 +7,7 @@
     "dev": "next dev -p 8082",
     "build": "prisma generate && next build",
     "start": "next start -p 8082",
-    "worker:start": "node worker.js",
+    "worker:start": "tsx src/worker/main.ts",
     "db:generate": "prisma generate",
     "db:validate": "prisma validate",
     "db:check": "tsx --env-file=.env src/lib/db/check-connection.ts",

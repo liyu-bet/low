@@ -136,6 +136,7 @@ export async function fetchGscPropertiesPage(
 export async function fetchAllGscProperties(
   config: GscClientConfig = requireGscClientConfig(),
   fetchImpl: GscFetch = fetch,
+  options: { updatedSince?: string | null } = {},
 ): Promise<GscProperty[]> {
   const properties: GscProperty[] = [];
   let cursor: string | null = null;
@@ -152,7 +153,11 @@ export async function fetchAllGscProperties(
     }
 
     const page = await fetchGscPropertiesPage(
-      { cursor, limit: config.pageSize },
+      {
+        cursor,
+        limit: config.pageSize,
+        updatedSince: options.updatedSince,
+      },
       config,
       fetchImpl,
     );

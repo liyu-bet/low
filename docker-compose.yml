@@ -35,17 +35,18 @@ services:
     ports:
       - "127.0.0.1:8082:8082"
 
-  work:
+  worker:
     build:
       context: .
       dockerfile: Dockerfile
       target: worker
-    container_name: low-work
+    container_name: low-worker
     restart: unless-stopped
     env_file:
       - .env
     environment:
       DATABASE_URL: ${DATABASE_URL}
+      WORKER_ENABLED: ${WORKER_ENABLED:-true}
     depends_on:
       postgres:
         condition: service_healthy

@@ -132,6 +132,7 @@ export async function fetchDsdSitesPage(
 export async function fetchAllDsdSites(
   config: DsdClientConfig = requireDsdClientConfig(),
   fetchImpl: DsdFetch = fetch,
+  options: { updatedSince?: string | null } = {},
 ): Promise<DsdSite[]> {
   const sites: DsdSite[] = [];
   let cursor: string | null = null;
@@ -147,7 +148,15 @@ export async function fetchAllDsdSites(
       seenCursors.add(cursor);
     }
 
-    const page = await fetchDsdSitesPage({ cursor, limit: config.pageSize }, config, fetchImpl);
+    const page = await fetchDsdSitesPage(
+      {
+        cursor,
+        limit: config.pageSize,
+        updatedSince: options.updatedSince,
+      },
+      config,
+      fetchImpl,
+    );
     sites.push(...page.items);
     if (!page.nextCursor) break;
     cursor = page.nextCursor;

@@ -73,6 +73,7 @@ enum SyncRunStatus {
   SUCCESS
   PARTIAL
   FAILED
+  SKIPPED
 }
 
 // ---------------------------------------------------------------------------
@@ -199,8 +200,10 @@ model WebsiteIntegration {
 model SyncRun {
   id           String            @id @default(cuid())
   system       IntegrationSystem
-  /// e.g. manual_full_sync
+  /// e.g. dsd_sites_sync | gsc_properties_sync | gsc_lifecycle_sync
   jobType      String?
+  /// manual | worker
+  trigger      String?
   status       SyncRunStatus     @default(RUNNING)
   startedAt    DateTime          @default(now())
   finishedAt   DateTime?
@@ -217,6 +220,7 @@ model SyncRun {
   @@index([system, startedAt])
   @@index([status])
   @@index([jobType])
+  @@index([trigger, startedAt])
 }
 
 /// Postgres-backed lock for worker jobs (no Redis in iteration 1).
@@ -227,4 +231,21 @@ model JobLock {
   owner     String?
 
   @@index([expiresAt])
+}
+
+/// Last-seen status for the background worker process.
+model WorkerHeartbeat {
+  id              String   @id @default(cuid())
+  workerId        String   @unique
+  status          String
+  startedAt       DateTime @default(now())
+  lastHeartbeatAt DateTime @default(now())
+  currentJob      String?
+  lastError       String?
+  version         String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([lastHeartbeatAt])
+  @@index([status])
 }

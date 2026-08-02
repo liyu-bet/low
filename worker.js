@@ -1,27 +1,29 @@
 /**
- * LOW worker entry.
- *
- * Iteration 1 scaffold: boots and idles with a heartbeat.
- * Sync jobs against DSD/GSC read-only M2M APIs are not implemented yet.
- * This process never opens DSD or GSC database connections.
+ * Docker / package entry. Delegates to TypeScript worker via tsx.
+ * Sync jobs live in src/worker/main.ts — this file must not log secrets.
  */
-async function main() {
-  if (!process.env.DATABASE_URL) {
-    throw new Error('DATABASE_URL is required for the LOW worker');
+const { spawn } = require('node:child_process');
+const path = require('node:path');
+
+const entry = path.join(__dirname, 'src', 'worker', 'main.ts');
+const child = spawn(
+  process.execPath,
+  [require.resolve('tsx/cli'), entry, ...process.argv.slice(2)],
+  {
+    stdio: 'inherit',
+    env: process.env,
+  },
+);
+
+child.on('exit', (code, signal) => {
+  if (signal) {
+    process.kill(process.pid, signal);
+    return;
   }
+  process.exit(code ?? 1);
+});
 
-  // TODO(iteration-2): JobLock + DSD/GSC read-only sync jobs via M2M HTTP APIs only.
-  console.log('[low-worker] started (iteration 1 idle scaffold — no sync jobs)');
-
-  const heartbeatMs = Number(process.env.WORKER_HEARTBEAT_MS || 60_000);
-  setInterval(() => {
-    console.log(`[low-worker] heartbeat ${new Date().toISOString()}`);
-  }, heartbeatMs);
-
-  await new Promise(() => {});
-}
-
-main().catch((error) => {
-  console.error('[low-worker] fatal', error);
+child.on('error', (error) => {
+  console.error('[WORKER] failed to start tsx:', error.message);
   process.exit(1);
 });

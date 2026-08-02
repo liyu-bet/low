@@ -13,6 +13,7 @@ import {
   EVENT_TYPE_GSC_PROPERTY_FIRST_SEEN,
   EVENT_TYPE_SITE_CREATED,
   GSC_PROPERTIES_SYNC_JOB_TYPE,
+  JOB_LOCK_GSC_PROPERTIES,
 } from '@/lib/constants';
 import { fetchAllGscProperties, type GscFetch } from '@/lib/gsc/client';
 import { requireGscClientConfig, type GscClientConfig } from '@/lib/gsc/config';
@@ -24,6 +25,7 @@ import {
 } from '@/lib/gsc/schemas';
 import { prisma } from '@/lib/db/prisma';
 import { DomainNormalizationError } from '@/lib/domain/normalize';
+import { acquireJobLock, releaseJobLock } from '@/lib/worker/locks';
 
 export type GscPropertiesSyncSummary = {
   syncRunId: string;
@@ -313,20 +315,82 @@ export async function syncSingleGscProperty(
   });
 }
 
-export async function runManualGscPropertiesSync(options: {
-  session: AdminSession | null | undefined;
+export async function runGscPropertiesSync(options: {
+  trigger: 'manual' | 'worker';
+  session?: AdminSession | null;
+  mode?: 'full' | 'incremental';
+  updatedSince?: string | null;
+  fullReconciliation?: boolean;
+  workerId?: string;
+  scheduledFor?: string | null;
+  lockTtlMs?: number;
   config?: GscClientConfig;
   fetchImpl?: GscFetch;
 }): Promise<GscPropertiesSyncSummary> {
-  assertAuthenticated(options.session);
+  if (options.trigger === 'manual') {
+    assertAuthenticated(options.session);
+  }
+
   const config = options.config ?? requireGscClientConfig();
+  const mode = options.mode ?? 'full';
+  const updatedSince = mode === 'incremental' ? options.updatedSince ?? null : null;
+  const owner =
+    options.trigger === 'worker'
+      ? options.workerId ?? `worker:${process.pid}`
+      : `manual:${options.session!.email}`;
+  const lockTtlMs = options.lockTtlMs ?? 45 * 60_000;
+
+  const lock = await acquireJobLock({
+    lockId: JOB_LOCK_GSC_PROPERTIES,
+    owner,
+    ttlMs: lockTtlMs,
+  });
+  if (!lock.ok) {
+    const skipped = await prisma.syncRun.create({
+      data: {
+        system: IntegrationSystem.GSC,
+        jobType: GSC_PROPERTIES_SYNC_JOB_TYPE,
+        trigger: options.trigger,
+        status: SyncRunStatus.SKIPPED,
+        finishedAt: new Date(),
+        error: 'Синхронизация уже выполняется',
+        metadata: {
+          provider: 'gsc',
+          jobType: GSC_PROPERTIES_SYNC_JOB_TYPE,
+          trigger: options.trigger,
+          skippedReason: 'active_lock',
+        },
+      },
+    });
+    return {
+      syncRunId: skipped.id,
+      status: skipped.status,
+      processed: 0,
+      createdCount: 0,
+      updatedCount: 0,
+      errorCount: 0,
+      itemsRead: 0,
+      error: skipped.error,
+      metadata: (skipped.metadata as Record<string, unknown>) ?? {},
+    };
+  }
 
   const syncRun = await prisma.syncRun.create({
     data: {
       system: IntegrationSystem.GSC,
       jobType: GSC_PROPERTIES_SYNC_JOB_TYPE,
+      trigger: options.trigger,
       status: SyncRunStatus.RUNNING,
-      metadata: { provider: 'gsc', jobType: GSC_PROPERTIES_SYNC_JOB_TYPE },
+      metadata: {
+        provider: 'gsc',
+        jobType: GSC_PROPERTIES_SYNC_JOB_TYPE,
+        trigger: options.trigger,
+        mode,
+        updatedSince,
+        workerId: options.workerId ?? null,
+        scheduledFor: options.scheduledFor ?? null,
+        fullReconciliation: Boolean(options.fullReconciliation),
+      },
     },
   });
 
@@ -344,9 +408,8 @@ export async function runManualGscPropertiesSync(options: {
   const errors: Array<{ propertyId?: string; message: string }> = [];
 
   try {
-    // Count pages via walk already done in fetchAll; approximate pages from page size later.
-    const properties = await fetchAllGscProperties(config, options.fetchImpl);
-    pagesFetched = Math.max(1, Math.ceil(properties.length / config.pageSize));
+    const properties = await fetchAllGscProperties(config, options.fetchImpl, { updatedSince });
+    pagesFetched = Math.max(1, Math.ceil(properties.length / Math.max(1, config.pageSize)));
 
     for (const property of properties) {
       processed += 1;
@@ -383,6 +446,14 @@ export async function runManualGscPropertiesSync(options: {
     const metadata = {
       provider: 'gsc',
       jobType: GSC_PROPERTIES_SYNC_JOB_TYPE,
+      trigger: options.trigger,
+      mode,
+      updatedSince,
+      workerId: options.workerId ?? null,
+      scheduledFor: options.scheduledFor ?? null,
+      fullReconciliation: Boolean(options.fullReconciliation),
+      startedAt: syncRun.startedAt.toISOString(),
+      incrementalCursor: syncRun.startedAt.toISOString(),
       pagesFetched,
       propertiesProcessed: processed,
       websitesCreated,
@@ -436,14 +507,10 @@ export async function runManualGscPropertiesSync(options: {
         metadata: {
           provider: 'gsc',
           jobType: GSC_PROPERTIES_SYNC_JOB_TYPE,
-          pagesFetched,
-          propertiesProcessed: processed,
-          websitesCreated,
-          websitesMatched,
-          integrationsCreated,
-          eventsCreated,
-          accountReferencesUpserted,
-          conflicts,
+          trigger: options.trigger,
+          mode,
+          updatedSince,
+          workerId: options.workerId ?? null,
           fatal: message,
         },
       },
@@ -460,14 +527,37 @@ export async function runManualGscPropertiesSync(options: {
       error: finished.error,
       metadata: (finished.metadata as Record<string, unknown>) ?? {},
     };
+  } finally {
+    await releaseJobLock({ lockId: JOB_LOCK_GSC_PROPERTIES, owner });
   }
 }
 
-export async function getLatestGscSyncRun(jobType?: string) {
+export async function runManualGscPropertiesSync(options: {
+  session: AdminSession | null | undefined;
+  config?: GscClientConfig;
+  fetchImpl?: GscFetch;
+}): Promise<GscPropertiesSyncSummary> {
+  return runGscPropertiesSync({
+    trigger: 'manual',
+    session: options.session,
+    mode: 'full',
+    config: options.config,
+    fetchImpl: options.fetchImpl,
+  });
+}
+
+export async function getLatestGscSyncRun(jobType?: string, trigger?: string) {
+  const legacy =
+    jobType === GSC_PROPERTIES_SYNC_JOB_TYPE
+      ? ['manual_properties_sync']
+      : jobType?.includes('lifecycle')
+        ? ['manual_lifecycle_sync']
+        : [];
   return prisma.syncRun.findFirst({
     where: {
       system: IntegrationSystem.GSC,
-      ...(jobType ? { jobType } : {}),
+      ...(jobType ? { jobType: { in: [jobType, ...legacy] } } : {}),
+      ...(trigger ? { trigger } : {}),
     },
     orderBy: { startedAt: 'desc' },
   });

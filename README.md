@@ -79,7 +79,7 @@ docker compose up --build
 | `npm test` | Unit tests (domain, auth guard, website prep) |
 | `npm run db:validate` | Prisma schema validation |
 | `npm run db:check` | `SELECT 1` against local Postgres |
-| `npm run worker:start` | Background worker |
+| `npm run worker:start` | Unified DSD/GSC sync worker |
 
 ## Auth env
 
@@ -123,6 +123,22 @@ Google OAuth access/refresh tokens are **never** copied into LOW.
 
 `firstSeenAt` / `gscFirstSeenAt` = first import into the GSC app. Impression/click dates = earliest available via Search Console API lookback.
 
+## Worker env
+
+- `WORKER_ENABLED` — default `true`; `false` exits cleanly
+- `WORKER_TIMEZONE` — default `Europe/Belgrade`
+- `DSD_SYNC_INTERVAL_MINUTES` — default `15`
+- `DSD_FULL_RECONCILIATION_HOUR` — default `3`
+- `GSC_PROPERTIES_SYNC_INTERVAL_HOURS` — default `6`
+- `GSC_FULL_RECONCILIATION_HOUR` — default `4`
+- `GSC_LIFECYCLE_SYNC_HOUR` — default `5`
+- `JOB_LOCK_*_TTL_MINUTES` — lock TTL per job
+- Heartbeat / timeout / backoff: see `.env.example`
+
+Run locally: `npm run worker:start`. Compose service: `worker` (no published ports). Status: `/integrations` and compact block on `/websites`.
+
+**Limits:** worker hits live M2M when env points there; lifecycle is capped per run (backlog drains over days); no Redis.
+
 ## Local ports (example)
 
 | App | Port |
@@ -131,8 +147,8 @@ Google OAuth access/refresh tokens are **never** copied into LOW.
 | GSC | 3001 |
 | LOW | 8082 |
 
-## Iteration 1 status
+## Iteration status
 
-**Done:** core app, RU UI, timeline, key dates, manual DSD sync, manual GSC properties + lifecycle sync.
+**Done:** core app, RU UI, timeline, key dates, manual + background DSD/GSC sync worker.
 
-**Next:** unified worker/cron for DSD and GSC (optional). Production deploy not part of this stage.
+**Next:** production deploy only when explicitly requested.

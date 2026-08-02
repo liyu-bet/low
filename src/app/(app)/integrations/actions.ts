@@ -29,6 +29,16 @@ export type IntegrationActionState = {
   };
 };
 
+function syncMessage(
+  status: string,
+  labels: { success: string; partial: string; skipped: string; failed: string },
+): string {
+  if (status === 'SUCCESS') return labels.success;
+  if (status === 'PARTIAL') return labels.partial;
+  if (status === 'SKIPPED') return labels.skipped;
+  return labels.failed;
+}
+
 function mapError(error: unknown): string {
   if (
     error instanceof DsdConfigError ||
@@ -72,13 +82,14 @@ export async function syncDsdSitesAction(
     revalidatePath('/integrations');
     revalidatePath('/websites');
     return {
-      ok: true,
-      message:
-        summary.status === 'SUCCESS'
-          ? 'Синхронизация завершена успешно'
-          : summary.status === 'PARTIAL'
-            ? 'Синхронизация завершена частично'
-            : 'Синхронизация завершилась с ошибкой',
+      ok: summary.status !== 'FAILED' && summary.status !== 'SKIPPED',
+      message: syncMessage(summary.status, {
+        success: 'Синхронизация завершена успешно',
+        partial: 'Синхронизация завершена частично',
+        skipped: 'Синхронизация уже выполняется',
+        failed: 'Синхронизация завершилась с ошибкой',
+      }),
+      error: summary.status === 'SKIPPED' ? 'Синхронизация уже выполняется' : undefined,
       summary: {
         status: summary.status,
         processed: summary.processed,
@@ -122,13 +133,14 @@ export async function syncGscPropertiesAction(
     revalidatePath('/integrations');
     revalidatePath('/websites');
     return {
-      ok: true,
-      message:
-        summary.status === 'SUCCESS'
-          ? 'Синхронизация свойств GSC завершена успешно'
-          : summary.status === 'PARTIAL'
-            ? 'Синхронизация свойств GSC завершена частично'
-            : 'Синхронизация свойств GSC завершилась с ошибкой',
+      ok: summary.status !== 'FAILED' && summary.status !== 'SKIPPED',
+      message: syncMessage(summary.status, {
+        success: 'Синхронизация свойств GSC завершена успешно',
+        partial: 'Синхронизация свойств GSC завершена частично',
+        skipped: 'Синхронизация уже выполняется',
+        failed: 'Синхронизация свойств GSC завершилась с ошибкой',
+      }),
+      error: summary.status === 'SKIPPED' ? 'Синхронизация уже выполняется' : undefined,
       summary: {
         status: summary.status,
         processed: summary.processed,
@@ -153,13 +165,14 @@ export async function syncGscLifecycleAction(
     revalidatePath('/integrations');
     revalidatePath('/websites');
     return {
-      ok: true,
-      message:
-        summary.status === 'SUCCESS'
-          ? 'Поиск первых показов и кликов завершён успешно'
-          : summary.status === 'PARTIAL'
-            ? 'Поиск первых показов и кликов завершён частично'
-            : 'Поиск первых показов и кликов завершился с ошибкой',
+      ok: summary.status !== 'FAILED' && summary.status !== 'SKIPPED',
+      message: syncMessage(summary.status, {
+        success: 'Поиск первых показов и кликов завершён успешно',
+        partial: 'Поиск первых показов и кликов завершён частично',
+        skipped: 'Синхронизация уже выполняется',
+        failed: 'Поиск первых показов и кликов завершился с ошибкой',
+      }),
+      error: summary.status === 'SKIPPED' ? 'Синхронизация уже выполняется' : undefined,
       summary: {
         status: summary.status,
         processed: summary.processed,

@@ -8,7 +8,11 @@ import {
   WebsiteStatus,
 } from '@prisma/client';
 import { assertAuthenticated, type AdminSession } from '@/lib/auth/session';
-import { DSD_SYNC_JOB_TYPE, EVENT_TYPE_SITE_CREATED } from '@/lib/constants';
+import {
+  DSD_SYNC_JOB_TYPE,
+  EVENT_TYPE_SITE_CREATED,
+  JOB_LOCK_DSD,
+} from '@/lib/constants';
 import { fetchAllDsdSites, type DsdFetch } from '@/lib/dsd/client';
 import { requireDsdClientConfig, type DsdClientConfig } from '@/lib/dsd/config';
 import { planDsdSiteEvents } from '@/lib/dsd/events';
@@ -20,6 +24,7 @@ import {
 } from '@/lib/dsd/schemas';
 import { prisma } from '@/lib/db/prisma';
 import { DomainNormalizationError, normalizeDomain } from '@/lib/domain/normalize';
+import { acquireJobLock, releaseJobLock } from '@/lib/worker/locks';
 
 export type DsdSyncSummary = {
   syncRunId: string;
@@ -286,20 +291,82 @@ export async function syncSingleDsdSite(
   });
 }
 
-export async function runManualDsdFullSync(options: {
-  session: AdminSession | null | undefined;
+export async function runDsdSync(options: {
+  trigger: 'manual' | 'worker';
+  session?: AdminSession | null;
+  mode?: 'full' | 'incremental';
+  updatedSince?: string | null;
+  fullReconciliation?: boolean;
+  workerId?: string;
+  scheduledFor?: string | null;
+  lockTtlMs?: number;
   config?: DsdClientConfig;
   fetchImpl?: DsdFetch;
 }): Promise<DsdSyncSummary> {
-  assertAuthenticated(options.session);
+  if (options.trigger === 'manual') {
+    assertAuthenticated(options.session);
+  }
+
   const config = options.config ?? requireDsdClientConfig();
+  const mode = options.mode ?? 'full';
+  const updatedSince = mode === 'incremental' ? options.updatedSince ?? null : null;
+  const owner =
+    options.trigger === 'worker'
+      ? options.workerId ?? `worker:${process.pid}`
+      : `manual:${options.session!.email}`;
+  const lockTtlMs = options.lockTtlMs ?? 45 * 60_000;
+
+  const lock = await acquireJobLock({
+    lockId: JOB_LOCK_DSD,
+    owner,
+    ttlMs: lockTtlMs,
+  });
+  if (!lock.ok) {
+    const skipped = await prisma.syncRun.create({
+      data: {
+        system: IntegrationSystem.DSD,
+        jobType: DSD_SYNC_JOB_TYPE,
+        trigger: options.trigger,
+        status: SyncRunStatus.SKIPPED,
+        finishedAt: new Date(),
+        error: 'Синхронизация уже выполняется',
+        metadata: {
+          provider: 'dsd',
+          jobType: DSD_SYNC_JOB_TYPE,
+          trigger: options.trigger,
+          skippedReason: 'active_lock',
+        },
+      },
+    });
+    return {
+      syncRunId: skipped.id,
+      status: skipped.status,
+      processed: 0,
+      createdCount: 0,
+      updatedCount: 0,
+      errorCount: 0,
+      itemsRead: 0,
+      error: skipped.error,
+      metadata: (skipped.metadata as Record<string, unknown>) ?? {},
+    };
+  }
 
   const syncRun = await prisma.syncRun.create({
     data: {
       system: IntegrationSystem.DSD,
       jobType: DSD_SYNC_JOB_TYPE,
+      trigger: options.trigger,
       status: SyncRunStatus.RUNNING,
-      metadata: { provider: 'dsd', jobType: DSD_SYNC_JOB_TYPE },
+      metadata: {
+        provider: 'dsd',
+        jobType: DSD_SYNC_JOB_TYPE,
+        trigger: options.trigger,
+        mode,
+        updatedSince,
+        workerId: options.workerId ?? null,
+        scheduledFor: options.scheduledFor ?? null,
+        fullReconciliation: Boolean(options.fullReconciliation),
+      },
     },
   });
 
@@ -310,7 +377,7 @@ export async function runManualDsdFullSync(options: {
   const errors: Array<{ dsdSiteId?: string; message: string }> = [];
 
   try {
-    const sites = await fetchAllDsdSites(config, options.fetchImpl);
+    const sites = await fetchAllDsdSites(config, options.fetchImpl, { updatedSince });
     for (const site of sites) {
       processed += 1;
       try {
@@ -339,6 +406,14 @@ export async function runManualDsdFullSync(options: {
     const metadata = {
       provider: 'dsd',
       jobType: DSD_SYNC_JOB_TYPE,
+      trigger: options.trigger,
+      mode,
+      updatedSince,
+      workerId: options.workerId ?? null,
+      scheduledFor: options.scheduledFor ?? null,
+      fullReconciliation: Boolean(options.fullReconciliation),
+      startedAt: syncRun.startedAt.toISOString(),
+      incrementalCursor: syncRun.startedAt.toISOString(),
       processed,
       createdCount,
       updatedCount,
@@ -389,6 +464,12 @@ export async function runManualDsdFullSync(options: {
         metadata: {
           provider: 'dsd',
           jobType: DSD_SYNC_JOB_TYPE,
+          trigger: options.trigger,
+          mode,
+          updatedSince,
+          workerId: options.workerId ?? null,
+          scheduledFor: options.scheduledFor ?? null,
+          fullReconciliation: Boolean(options.fullReconciliation),
           processed,
           createdCount,
           updatedCount,
@@ -409,12 +490,34 @@ export async function runManualDsdFullSync(options: {
       error: finished.error,
       metadata: (finished.metadata as Record<string, unknown>) ?? {},
     };
+  } finally {
+    await releaseJobLock({ lockId: JOB_LOCK_DSD, owner });
   }
 }
 
-export async function getLatestDsdSyncRun() {
+export async function runManualDsdFullSync(options: {
+  session: AdminSession | null | undefined;
+  config?: DsdClientConfig;
+  fetchImpl?: DsdFetch;
+}): Promise<DsdSyncSummary> {
+  return runDsdSync({
+    trigger: 'manual',
+    session: options.session,
+    mode: 'full',
+    config: options.config,
+    fetchImpl: options.fetchImpl,
+  });
+}
+
+export async function getLatestDsdSyncRun(options?: { trigger?: string; jobType?: string }) {
   return prisma.syncRun.findFirst({
-    where: { system: IntegrationSystem.DSD },
+    where: {
+      system: IntegrationSystem.DSD,
+      ...(options?.trigger ? { trigger: options.trigger } : {}),
+      ...(options?.jobType
+        ? { jobType: { in: [options.jobType, DSD_SYNC_JOB_TYPE, 'manual_full_sync'] } }
+        : {}),
+    },
     orderBy: { startedAt: 'desc' },
   });
 }

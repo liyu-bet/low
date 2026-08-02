@@ -9,6 +9,10 @@ import {
 } from '@/lib/constants';
 import { DsdIntegrationActions } from '@/components/DsdIntegrationActions';
 import { GscIntegrationActions } from '@/components/GscIntegrationActions';
+import {
+  getWorkerAutomationStatus,
+  labelWorkerPresence,
+} from '@/lib/worker/status';
 
 function SyncRunDetails({
   title,
@@ -27,8 +31,11 @@ function SyncRunDetails({
             <dd className="text-ink-50">{latest.status}</dd>
           </div>
           <div>
-            <dt>Тип</dt>
-            <dd className="text-ink-50">{latest.jobType ?? '—'}</dd>
+            <dt>Тип / триггер</dt>
+            <dd className="text-ink-50">
+              {latest.jobType ?? '—'}
+              {latest.trigger ? ` · ${latest.trigger}` : ''}
+            </dd>
           </div>
           <div>
             <dt>Начало</dt>
@@ -64,6 +71,12 @@ function SyncRunDetails({
   );
 }
 
+function presenceClass(presence: 'online' | 'stale' | 'offline') {
+  if (presence === 'online') return 'text-moss-400';
+  if (presence === 'stale') return 'text-amber-200';
+  return 'text-red-200';
+}
+
 export default async function IntegrationsPage() {
   const dsdConfigured = isDsdConfigured();
   const gscConfigured = isGscConfigured();
@@ -71,6 +84,7 @@ export default async function IntegrationsPage() {
   const latestDsd = await getLatestDsdSyncRun();
   const latestGscProperties = await getLatestGscSyncRun(GSC_PROPERTIES_SYNC_JOB_TYPE);
   const latestGscLifecycle = await getLatestGscSyncRun(GSC_LIFECYCLE_SYNC_JOB_TYPE);
+  const worker = await getWorkerAutomationStatus();
 
   return (
     <div className="space-y-8">
@@ -81,6 +95,84 @@ export default async function IntegrationsPage() {
           браузер. OAuth-токены Google в LOW не копируются.
         </p>
       </div>
+
+      <section className="space-y-4 rounded border border-ink-700/70 bg-ink-950/40 p-5">
+        <div>
+          <h2 className="font-display text-2xl text-sand-100">Фоновая синхронизация</h2>
+          <p className="mt-1 text-sm text-ink-200">
+            Отдельный worker process по расписанию. Ручные кнопки ниже используют те же блокировки.
+          </p>
+        </div>
+        <dl className="grid gap-3 text-sm text-ink-200 sm:grid-cols-2 lg:grid-cols-3">
+          <div>
+            <dt>Включено</dt>
+            <dd className="text-ink-50">{worker.enabled ? 'да' : 'нет (WORKER_ENABLED)'}</dd>
+          </div>
+          <div>
+            <dt>Статус worker</dt>
+            <dd className={presenceClass(worker.presence)}>
+              {labelWorkerPresence(worker.presence)}
+              {worker.workerLabel ? ` · ${worker.workerLabel}` : ''}
+            </dd>
+          </div>
+          <div>
+            <dt>Текущая задача</dt>
+            <dd className="text-ink-50">{worker.currentJob ?? '—'}</dd>
+          </div>
+          <div>
+            <dt>Последний heartbeat</dt>
+            <dd className="text-ink-50">{formatDateTimeRu(worker.lastHeartbeatAt)}</dd>
+          </div>
+          <div>
+            <dt>Интеграции</dt>
+            <dd className="text-ink-50">
+              DSD {worker.configuredIntegrations.dsd ? 'ок' : 'нет'} · GSC{' '}
+              {worker.configuredIntegrations.gsc ? 'ок' : 'нет'}
+            </dd>
+          </div>
+          {worker.lastError ? (
+            <div className="sm:col-span-2 lg:col-span-3">
+              <dt>Последняя ошибка worker</dt>
+              <dd className="text-red-200">{worker.lastError}</dd>
+            </div>
+          ) : null}
+        </dl>
+
+        <div className="border-t border-ink-700/60 pt-4">
+          <h3 className="text-sm text-ink-100">Задачи</h3>
+          <ul className="mt-2 space-y-3 text-sm text-ink-200">
+            {worker.jobs.map((job) => (
+              <li key={job.jobType} className="grid gap-1 sm:grid-cols-3">
+                <span className="text-ink-50">{job.label}</span>
+                <span>
+                  Последний: {job.lastRun ? `${job.lastRun.status}` : '—'}
+                  {job.lastRun?.finishedAt
+                    ? ` · ${formatDateTimeRu(job.lastRun.finishedAt)}`
+                    : ''}
+                </span>
+                <span>
+                  Следующий (оценка):{' '}
+                  {job.estimatedNextRunAt ? formatDateTimeRu(job.estimatedNextRunAt) : '—'}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {worker.locks.length > 0 ? (
+          <div className="border-t border-ink-700/60 pt-4 text-sm text-ink-200">
+            <h3 className="text-ink-100">Активные блокировки</h3>
+            <ul className="mt-2 space-y-1">
+              {worker.locks.map((lock) => (
+                <li key={lock.id}>
+                  {lock.id.replace('job:', '')} — {lock.ownerLabel}, до{' '}
+                  {formatDateTimeRu(lock.expiresAt)}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+      </section>
 
       <section className="space-y-4 rounded border border-ink-700/70 bg-ink-950/40 p-5">
         <div>

@@ -1,10 +1,15 @@
 import Link from 'next/link';
 import {
   formatDateRu,
+  formatDateTimeRu,
   labelLifecycleStage,
   labelWebsiteStatus,
 } from '@/lib/ui/labels';
 import { listWebsites } from '@/lib/websites/service';
+import {
+  getWorkerAutomationStatus,
+  labelWorkerPresence,
+} from '@/lib/worker/status';
 
 export default async function WebsitesPage({
   searchParams,
@@ -14,6 +19,7 @@ export default async function WebsitesPage({
   const params = await searchParams;
   const includeArchived = params.archived === '1';
   const websites = await listWebsites({ includeArchived });
+  const worker = await getWorkerAutomationStatus();
 
   return (
     <div className="space-y-6">
@@ -39,6 +45,43 @@ export default async function WebsitesPage({
           </Link>
         </div>
       </div>
+
+      <section className="rounded border border-ink-700/70 bg-ink-950/30 px-4 py-3 text-sm text-ink-200">
+        <h2 className="font-medium text-ink-50">Автоматизация</h2>
+        <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1">
+          <span>
+            Worker:{' '}
+            <span
+              className={
+                worker.presence === 'online'
+                  ? 'text-moss-400'
+                  : worker.presence === 'stale'
+                    ? 'text-amber-200'
+                    : 'text-red-200'
+              }
+            >
+              {labelWorkerPresence(worker.presence)}
+            </span>
+            {!worker.enabled ? ' (выключен)' : ''}
+          </span>
+          <span>
+            DSD: {worker.lastSuccessfulDsdAt ? formatDateTimeRu(worker.lastSuccessfulDsdAt) : '—'}
+          </span>
+          <span>
+            GSC:{' '}
+            {worker.lastSuccessfulGscPropertiesAt
+              ? formatDateTimeRu(worker.lastSuccessfulGscPropertiesAt)
+              : '—'}
+          </span>
+          <span>Ждут lifecycle: {worker.lifecycleAwaitingCount}</span>
+          {worker.lastWorkerError ? (
+            <span className="text-red-200">Ошибка: {worker.lastWorkerError}</span>
+          ) : null}
+          <Link href="/integrations" className="text-sand-100 underline-offset-2 hover:underline">
+            Подробнее
+          </Link>
+        </div>
+      </section>
 
       {websites.length === 0 ? (
         <p className="rounded border border-dashed border-ink-700 px-4 py-10 text-center text-ink-200">

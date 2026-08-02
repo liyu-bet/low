@@ -45,7 +45,7 @@ LOW does **not** replace DSD or GSC. It correlates lifecycle facts and work hist
 - Separate worker process
 - Cookie-based single-admin authentication
 
-**Out of scope for iteration 1:** Redis, queues, multi-user roles, AI features, complex analytics, background workers for DSD/GSC.
+**Out of scope for iteration 1:** Redis, queues, multi-user roles, AI features, complex analytics.
 
 ## 5. Domain model
 
@@ -163,7 +163,7 @@ LOW  --read-only M2M Bearer-->  DSD GET /api/integrations/low/*
 LOW  --read-only M2M Bearer-->  GSC GET /api/integrations/low/*
 ```
 
-### DSD (manual full sync)
+### DSD (manual + worker sync)
 
 Server-only env: `DSD_BASE_URL`, `DSD_LOW_API_TOKEN`, `DSD_REQUEST_TIMEOUT_MS`, `DSD_SYNC_PAGE_SIZE`.
 
@@ -171,12 +171,14 @@ Server-only env: `DSD_BASE_URL`, `DSD_LOW_API_TOKEN`, `DSD_REQUEST_TIMEOUT_MS`, 
 - Matching order: `WebsiteIntegration` by DSD site id → `Website.normalizedDomain` → create Website.
 - Snapshot stored in `WebsiteIntegration.externalData` (status, ping, DNS, server, expiry — never secrets).
 - `AccountReference` upserted with `hasAccess`/`hasCredential` boolean only.
-- `SyncRun` with `jobType=manual_full_sync`, statuses `RUNNING|SUCCESS|PARTIAL|FAILED`.
+- Core API: `runDsdSync({ trigger: 'manual'|'worker', mode, updatedSince })`; manual buttons call `runManualDsdFullSync`.
+- `SyncRun` with `jobType=dsd_sites_sync`, `trigger`, statuses `RUNNING|SUCCESS|PARTIAL|FAILED|SKIPPED`.
 - Automatic append-only events with unique `dedupeKey` (no `SITE_DOWN` on first import).
+- JobLock `job:dsd_sites_sync` shared by manual and worker (busy → «Синхронизация уже выполняется»).
 
 UI: `/integrations` (health + sync) and DSD block on website detail.
 
-### GSC (manual properties + lifecycle)
+### GSC (manual + worker properties + lifecycle)
 
 Server-only env: `GSC_BASE_URL`, `GSC_LOW_API_TOKEN`, `GSC_REQUEST_TIMEOUT_MS`, `GSC_SYNC_PAGE_SIZE`, `GSC_LIFECYCLE_CONCURRENCY`, `GSC_LIFECYCLE_MAX_PROPERTIES_PER_RUN`.
 
@@ -187,10 +189,23 @@ Server-only env: `GSC_BASE_URL`, `GSC_LOW_API_TOKEN`, `GSC_REQUEST_TIMEOUT_MS`, 
 - `gscFirstSeenAt` = earliest import into the GSC app (`firstSeenAt`), never overwrites an earlier value with a later one; `gscAddedAtManual` untouched.
 - Lifecycle job fills `firstImpressionAt` / `firstClickAt` only when null, or refines to an earlier automatic date (`GSC_*_REFINED`); manual overrides untouched.
 - Date meaning: `earliest_available_in_search_console_api` (not guaranteed first-ever history).
-- Separate SyncRuns: `manual_properties_sync`, `manual_lifecycle_sync`.
-- No worker/cron yet; DSD and GSC syncs are never one transaction.
+- Separate SyncRuns: `gsc_properties_sync`, `gsc_lifecycle_sync` (never one transaction with DSD).
+- JobLocks: `job:gsc_properties_sync`, `job:gsc_lifecycle_sync`.
 
 UI: `/integrations` GSC block + website GSC properties panel.
+
+### Unified sync worker
+
+Separate Node process (`npm run worker:start` / Compose service `worker`):
+
+- Scheduler loop (no overlapping `setInterval`); SIGTERM/SIGINT graceful stop.
+- Jobs: `dsd_sites_sync` (default every 15m; full recon hour 03:00), `gsc_properties_sync` (every 6h; full hour 04:00), `gsc_lifecycle_sync` (daily 05:00).
+- Timezone `WORKER_TIMEZONE` (default `Europe/Belgrade`); at most one catch-up after restart; daily jobs at most once per local day.
+- Incremental DSD/GSC properties after first successful worker run (`updatedSince` / `incrementalCursor`); forced full at reconciliation hour.
+- Lifecycle only for sites missing automatic impression/click; capped by `GSC_LIFECYCLE_MAX_PROPERTIES_PER_RUN`.
+- Heartbeat in `WorkerHeartbeat`; status on `/integrations` («Фоновая синхронизация») and compact «Автоматизация» on `/websites`.
+- Disable with `WORKER_ENABLED=false` (clean exit). No Redis/queue. Worker does not run migrations.
+- Limits: live M2M when env points at prod endpoints; lifecycle backlog drains over days; no token/secret logging.
 
 ## 9. Iteration 1 scope
 
@@ -206,11 +221,11 @@ UI: `/integrations` GSC block + website GSC properties panel.
 10. Key dates + manual overrides
 11. Manual DSD read-only sync
 12. Manual GSC read-only properties + lifecycle sync
-13. README + `.env.example`
+13. Unified DSD/GSC sync worker (JobLock + heartbeat + UI status)
+14. README + `.env.example`
 
 ## 10. Explicit non-goals (current)
 
-- Worker/cron for DSD/GSC
 - Redis / external queues
 - Multi-admin RBAC
 - AI assistants
@@ -232,6 +247,8 @@ next.config.ts
 postcss.config.mjs
 tailwind.config.ts
 worker.js
+src/worker/main.ts
+src/lib/worker/...
 prisma/schema.prisma
 prisma/migrations/...
 src/app/...
