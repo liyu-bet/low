@@ -52,6 +52,11 @@ jobs:
         run: npm run build
 
       - name: Compose config (dev)
+        env:
+          POSTGRES_USER: low
+          POSTGRES_PASSWORD: ci-password
+          POSTGRES_DB: low
+          DATABASE_URL: postgresql://low:ci-password@postgres:5432/low
         run: docker compose config -q
 
       - name: Compose config (prod)
