@@ -1,0 +1,219 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum WebsiteStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  ARCHIVED
+}
+
+enum LifecycleStage {
+  IDEA
+  SETUP
+  LAUNCHED
+  INDEXING
+  GROWING
+  MATURE
+  DECLINING
+  ARCHIVED
+}
+
+/// Provenance of a denormalized date field on Website.
+enum DateSource {
+  MANUAL
+  DSD
+  GSC
+  SYSTEM
+  INFERRED
+}
+
+enum EventCategory {
+  LIFECYCLE
+  TECHNICAL
+  SEO
+  CONTENT
+  FINANCE
+  INTEGRATION
+  NOTE
+  DATES
+}
+
+enum EventSource {
+  MANUAL
+  SYSTEM
+  DSD
+  GSC
+}
+
+enum IntegrationSystem {
+  DSD
+  GSC
+}
+
+enum IntegrationStatus {
+  PENDING
+  LINKED
+  UNLINKED
+  ERROR
+}
+
+enum SyncRunStatus {
+  RUNNING
+  SUCCESS
+  FAILED
+}
+
+// ---------------------------------------------------------------------------
+// Models
+// ---------------------------------------------------------------------------
+
+model Website {
+  id                      String         @id @default(cuid())
+  domain                  String
+  normalizedDomain        String         @unique
+  name                    String?
+  primaryUrl              String?
+  status                  WebsiteStatus  @default(DRAFT)
+  lifecycleStage          LifecycleStage @default(IDEA)
+  group                   String?
+  tags                    String[]       @default([])
+  launchedAt              DateTime?
+  /// Manual override for launch date; wins over launchedAt when set.
+  launchedAtManual        DateTime?
+  launchDateSource        DateSource?
+  firstHealthyAt          DateTime?
+  /// First discovery via GSC sync (automatic, read-only in UI).
+  gscFirstSeenAt          DateTime?
+  /// User override for “added to Search Console”; wins over gscFirstSeenAt.
+  gscAddedAtManual        DateTime?
+  /// First available GSC day where impressions > 0 (automatic).
+  firstImpressionAt       DateTime?
+  /// Manual override for first impressions date.
+  firstImpressionAtManual DateTime?
+  firstClickAt            DateTime?
+  /// Manual override for first click date.
+  firstClickAtManual      DateTime?
+  lastWorkAt              DateTime?
+  archivedAt              DateTime?
+  createdAt               DateTime       @default(now())
+  updatedAt               DateTime       @updatedAt
+
+  events       WebsiteEvent[]
+  integrations WebsiteIntegration[]
+
+  @@index([status])
+  @@index([lifecycleStage])
+  @@index([group])
+  @@index([lastWorkAt])
+}
+
+/// Append-only journal. Do not update/delete rows in normal application flows.
+model WebsiteEvent {
+  id           String        @id @default(cuid())
+  websiteId    String
+  eventType    String
+  category     EventCategory
+  title        String
+  description  String?
+  source       EventSource
+  sourceSystem String?
+  externalId   String?
+  /// Required for automatic events. Unique for idempotent sync writes.
+  dedupeKey    String?       @unique
+  occurredAt   DateTime
+  recordedAt   DateTime      @default(now())
+  amountMinor  Int?
+  currency     String?
+  quantity     Float?
+  unit         String?
+  /// Non-secret JSON only. Never store tokens, passwords, or API keys.
+  metadata     Json?
+  createdBy    String?
+
+  website Website @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+
+  @@index([websiteId, occurredAt])
+  @@index([eventType])
+  @@index([source])
+  @@index([recordedAt])
+}
+
+/// Pointer to an external account. No OAuth tokens, passwords, or API keys.
+model AccountReference {
+  id                String            @id @default(cuid())
+  system            IntegrationSystem
+  externalAccountId String
+  label             String?
+  hasAccess         Boolean           @default(false)
+  /// Non-secret metadata only (e.g. account email hint already public in source UI).
+  metadata          Json?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  integrations WebsiteIntegration[]
+
+  @@unique([system, externalAccountId])
+  @@index([system, hasAccess])
+}
+
+model WebsiteIntegration {
+  id                 String            @id @default(cuid())
+  websiteId          String
+  accountReferenceId String?
+  system             IntegrationSystem
+  externalEntityId   String?
+  /// Match key from source system (usually normalized domain or property URI).
+  externalKey        String?
+  status             IntegrationStatus @default(PENDING)
+  lastSyncedAt       DateTime?
+  syncError          String?
+  /// Non-secret metadata only.
+  metadata           Json?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  website          Website           @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  accountReference AccountReference? @relation(fields: [accountReferenceId], references: [id], onDelete: SetNull)
+
+  @@unique([websiteId, system])
+  @@index([system, externalEntityId])
+  @@index([system, externalKey])
+  @@index([accountReferenceId])
+}
+
+model SyncRun {
+  id           String            @id @default(cuid())
+  system       IntegrationSystem
+  status       SyncRunStatus     @default(RUNNING)
+  startedAt    DateTime          @default(now())
+  finishedAt   DateTime?
+  itemsRead    Int               @default(0)
+  itemsWritten Int               @default(0)
+  error        String?
+  /// Non-secret metadata only.
+  metadata     Json?
+
+  @@index([system, startedAt])
+  @@index([status])
+}
+
+/// Postgres-backed lock for worker jobs (no Redis in iteration 1).
+model JobLock {
+  id        String   @id
+  lockedAt  DateTime
+  expiresAt DateTime
+  owner     String?
+
+  @@index([expiresAt])
+}

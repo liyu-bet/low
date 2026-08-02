@@ -1,0 +1,40 @@
+{
+  "name": "low",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The Life of Websites — self-hosted website lifecycle journal",
+  "scripts": {
+    "dev": "next dev -p 8082",
+    "build": "prisma generate && next build",
+    "start": "next start -p 8082",
+    "worker:start": "node worker.js",
+    "db:generate": "prisma generate",
+    "db:validate": "prisma validate",
+    "db:check": "tsx --env-file=.env src/lib/db/check-connection.ts",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "postinstall": "prisma generate",
+    "test": "tsx --test src/lib/**/*.test.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.22.0",
+    "clsx": "^2.1.1",
+    "next": "^15.5.2",
+    "prisma": "^5.22.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "tailwind-merge": "^2.6.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.57",
+    "@types/react": "^19.1.10",
+    "@types/react-dom": "^19.1.7",
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.17",
+    "tsx": "^4.20.3",
+    "typescript": "^5.9.2"
+  }
+}
