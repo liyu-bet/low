@@ -10,9 +10,12 @@ export function AppHeader({ email }: { email: string }) {
           <Link href="/websites" className="font-display text-2xl text-sand-100">
             {APP_NAME}
           </Link>
-          <nav className="text-sm text-ink-200">
+          <nav className="flex gap-4 text-sm text-ink-200">
             <Link href="/websites" className="hover:text-sand-100">
               Сайты
+            </Link>
+            <Link href="/integrations" className="hover:text-sand-100">
+              Интеграции
             </Link>
           </nav>
         </div>

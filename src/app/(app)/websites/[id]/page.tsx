@@ -1,10 +1,13 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { IntegrationSystem } from '@prisma/client';
 import { archiveWebsiteAction } from '@/app/(app)/websites/actions';
 import { createManualEventAction } from '@/app/(app)/websites/[id]/events/actions';
 import { EventForm } from '@/components/EventForm';
 import { EventTimeline } from '@/components/EventTimeline';
 import { KeyDatesSection } from '@/components/KeyDatesSection';
+import { WebsiteDsdBlock } from '@/components/WebsiteDsdBlock';
+import { prisma } from '@/lib/db/prisma';
 import { listWebsiteEvents } from '@/lib/events/service';
 import { formatDateRu, labelLifecycleStage, labelWebsiteStatus } from '@/lib/ui/labels';
 import { WebsiteNotFoundError, getWebsiteById } from '@/lib/websites/service';
@@ -26,6 +29,14 @@ export default async function WebsiteDetailPage({
 
   const events = await listWebsiteEvents(id);
   const createEvent = createManualEventAction.bind(null, website.id);
+  const dsdIntegration = await prisma.websiteIntegration.findUnique({
+    where: {
+      websiteId_system: {
+        websiteId: website.id,
+        system: IntegrationSystem.DSD,
+      },
+    },
+  });
 
   return (
     <div className="space-y-10">
@@ -72,6 +83,8 @@ export default async function WebsiteDetailPage({
       </dl>
 
       <KeyDatesSection website={website} />
+
+      <WebsiteDsdBlock integration={dsdIntegration} />
 
       <section className="space-y-4">
         <div>

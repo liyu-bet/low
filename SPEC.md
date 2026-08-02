@@ -156,14 +156,25 @@ Must:
 - Cookie flags: `httpOnly`, `sameSite=lax`, `secure` only in production.
 - No multi-user roles.
 
-## 8. Integrations (later iterations)
+## 8. Integrations
 
 ```text
-LOW  --read-only M2M-->  DSD API
-LOW  --read-only M2M-->  GSC API
+LOW  --read-only M2M Bearer-->  DSD GET /api/integrations/low/*
+LOW  --read-only M2M-->  GSC API (not implemented yet)
 ```
 
-LOW never opens DSD/GSC DB connections. Sync jobs run in the worker process, write `SyncRun`, upsert `AccountReference` / `WebsiteIntegration`, and append deduped `WebsiteEvent` rows.
+### DSD (manual full sync)
+
+Server-only env: `DSD_BASE_URL`, `DSD_LOW_API_TOKEN`, `DSD_REQUEST_TIMEOUT_MS`, `DSD_SYNC_PAGE_SIZE`.
+
+- No `NEXT_PUBLIC_` token exposure.
+- Matching order: `WebsiteIntegration` by DSD site id → `Website.normalizedDomain` → create Website.
+- Snapshot stored in `WebsiteIntegration.externalData` (status, ping, DNS, server, expiry — never secrets).
+- `AccountReference` upserted with `hasAccess`/`hasCredential` boolean only.
+- `SyncRun` with `jobType=manual_full_sync`, statuses `RUNNING|SUCCESS|PARTIAL|FAILED`.
+- Automatic append-only events with unique `dedupeKey` (no `SITE_DOWN` on first import).
+
+UI: `/integrations` (health + sync) and DSD block on website detail.
 
 ## 9. Iteration 1 scope
 
@@ -176,16 +187,19 @@ LOW never opens DSD/GSC DB connections. Sync jobs run in the worker process, wri
 7. Website detail page
 8. Manual event creation
 9. Event timeline
-10. README + `.env.example`
+10. Key dates + manual overrides
+11. Manual DSD read-only sync
+12. README + `.env.example`
 
-## 10. Explicit non-goals (iteration 1)
+## 10. Explicit non-goals (current)
 
-- Live DSD/GSC sync implementation beyond schema readiness
+- Worker/cron DSD polling
+- GSC sync
 - Redis / external queues
 - Multi-admin RBAC
 - AI assistants
 - Analytics dashboards
-- Public/unauthenticated website portal
+- Direct DSD/GSC database access
 
 ## 11. File map (iteration 1 target)
 

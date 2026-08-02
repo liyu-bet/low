@@ -37,4 +37,13 @@ describe('resolveProtectedPathAccess', () => {
     });
     assert.equal(access.allowed, true);
   });
+
+  it('blocks integrations routes without a session', () => {
+    const access = resolveProtectedPathAccess({
+      pathname: '/integrations',
+      hasValidSession: false,
+    });
+    assert.equal(access.allowed, false);
+    assert.equal(access.redirectTo, '/login?next=%2Fintegrations');
+  });
 });

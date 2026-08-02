@@ -71,6 +71,7 @@ enum IntegrationStatus {
 enum SyncRunStatus {
   RUNNING
   SUCCESS
+  PARTIAL
   FAILED
 }
 
@@ -180,6 +181,8 @@ model WebsiteIntegration {
   syncError          String?
   /// Non-secret metadata only.
   metadata           Json?
+  /// Safe DSD/GSC snapshot (no tokens, passwords, or API keys).
+  externalData       Json?
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
 
@@ -195,17 +198,24 @@ model WebsiteIntegration {
 model SyncRun {
   id           String            @id @default(cuid())
   system       IntegrationSystem
+  /// e.g. manual_full_sync
+  jobType      String?
   status       SyncRunStatus     @default(RUNNING)
   startedAt    DateTime          @default(now())
   finishedAt   DateTime?
   itemsRead    Int               @default(0)
   itemsWritten Int               @default(0)
+  processed    Int               @default(0)
+  createdCount Int               @default(0)
+  updatedCount Int               @default(0)
+  errorCount   Int               @default(0)
   error        String?
   /// Non-secret metadata only.
   metadata     Json?
 
   @@index([system, startedAt])
   @@index([status])
+  @@index([jobType])
 }
 
 /// Postgres-backed lock for worker jobs (no Redis in iteration 1).

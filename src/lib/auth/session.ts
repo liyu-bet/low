@@ -122,6 +122,8 @@ export function resolveProtectedPathAccess(options: {
   const isProtected =
     options.pathname === '/websites' ||
     options.pathname.startsWith('/websites/') ||
+    options.pathname === '/integrations' ||
+    options.pathname.startsWith('/integrations/') ||
     options.pathname === '/logout';
 
   if (!isProtected) {

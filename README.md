@@ -87,8 +87,24 @@ docker compose up --build
 - `ADMIN_PASSWORD`
 - `SESSION_SECRET` (≥16 chars)
 
+## DSD sync env (server-only)
+
+- `DSD_BASE_URL` — e.g. `http://localhost:3000`
+- `DSD_LOW_API_TOKEN` — same Bearer token as DSD `DSD_LOW_API_TOKEN`
+- `DSD_REQUEST_TIMEOUT_MS` — default `10000`
+- `DSD_SYNC_PAGE_SIZE` — default `100`
+
+Never use `NEXT_PUBLIC_` for the token.
+
+### Manual DSD sync
+
+1. Start DSD locally with `DSD_LOW_API_TOKEN` set.
+2. Put the same token into LOW `.env`.
+3. Open http://127.0.0.1:8082/integrations
+4. «Проверить подключение» → «Синхронизировать сайты»
+
 ## Iteration 1 status
 
-**Done:** foundation, local DB, admin auth, Website CRUD (RU UI), manual events + timeline, key dates with manual overrides and audit events.
+**Done:** core app, RU UI, timeline, key dates, manual DSD read-only sync.
 
-**Next:** read-only DSD integration via service token (no passwords/secrets copied into LOW).
+**Next:** worker/cron for DSD (optional), then GSC read-only sync.
