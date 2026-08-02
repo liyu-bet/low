@@ -3,6 +3,11 @@ import {
   EVENT_TYPE_DATE_OVERRIDE_CLEARED,
   EVENT_TYPE_DATE_OVERRIDE_SET,
   EVENT_TYPE_DATE_OVERRIDE_UPDATED,
+  EVENT_TYPE_GSC_FIRST_CLICK,
+  EVENT_TYPE_GSC_FIRST_CLICK_REFINED,
+  EVENT_TYPE_GSC_FIRST_IMPRESSION,
+  EVENT_TYPE_GSC_FIRST_IMPRESSION_REFINED,
+  EVENT_TYPE_GSC_PROPERTY_FIRST_SEEN,
 } from '@/lib/constants';
 import type { DateOverrideMetadata } from '@/lib/dates/overrides';
 import {
@@ -17,6 +22,22 @@ const OVERRIDE_TYPES = new Set([
   EVENT_TYPE_DATE_OVERRIDE_UPDATED,
   EVENT_TYPE_DATE_OVERRIDE_CLEARED,
 ]);
+
+const GSC_DATE_TYPES = new Set([
+  EVENT_TYPE_GSC_PROPERTY_FIRST_SEEN,
+  EVENT_TYPE_GSC_FIRST_IMPRESSION,
+  EVENT_TYPE_GSC_FIRST_CLICK,
+  EVENT_TYPE_GSC_FIRST_IMPRESSION_REFINED,
+  EVENT_TYPE_GSC_FIRST_CLICK_REFINED,
+]);
+
+const GSC_EVENT_TYPE_LABELS: Record<string, string> = {
+  [EVENT_TYPE_GSC_PROPERTY_FIRST_SEEN]: 'Обнаружение в GSC',
+  [EVENT_TYPE_GSC_FIRST_IMPRESSION]: 'Первые доступные показы',
+  [EVENT_TYPE_GSC_FIRST_CLICK]: 'Первый доступный клик',
+  [EVENT_TYPE_GSC_FIRST_IMPRESSION_REFINED]: 'Уточнение даты показов',
+  [EVENT_TYPE_GSC_FIRST_CLICK_REFINED]: 'Уточнение даты клика',
+};
 
 function asOverrideMetadata(value: Prisma.JsonValue | null): DateOverrideMetadata | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
@@ -35,6 +56,11 @@ function asOverrideMetadata(value: Prisma.JsonValue | null): DateOverrideMetadat
       typeof record.newEffectiveValue === 'string' ? record.newEffectiveValue : null,
     reason: typeof record.reason === 'string' ? record.reason : '',
   };
+}
+
+function asGscMeta(value: Prisma.JsonValue | null): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
 }
 
 export function EventTimeline({ events }: { events: WebsiteEvent[] }) {
@@ -64,6 +90,8 @@ export function EventTimeline({ events }: { events: WebsiteEvent[] }) {
         const overrideMeta = OVERRIDE_TYPES.has(event.eventType)
           ? asOverrideMetadata(event.metadata)
           : null;
+        const gscMeta = GSC_DATE_TYPES.has(event.eventType) ? asGscMeta(event.metadata) : null;
+        const typeLabel = GSC_EVENT_TYPE_LABELS[event.eventType] ?? event.eventType;
 
         return (
           <li key={event.id} className="relative">
@@ -81,7 +109,7 @@ export function EventTimeline({ events }: { events: WebsiteEvent[] }) {
               <span>·</span>
               <span>{labelEventCategory(event.category)}</span>
               <span>·</span>
-              <span className="font-mono text-[11px] text-ink-200">{event.eventType}</span>
+              <span className="font-mono text-[11px] text-ink-200">{typeLabel}</span>
             </div>
             <div className="mt-1 text-sm font-medium text-sand-100">{event.title}</div>
             {event.description ? (
@@ -106,6 +134,43 @@ export function EventTimeline({ events }: { events: WebsiteEvent[] }) {
                 <div className="text-[11px] text-ink-200">
                   Дата выполнения коррекции выше · историческая дата факта не подменяется в
                   журнале.
+                </div>
+              </div>
+            ) : null}
+
+            {gscMeta ? (
+              <div className="mt-2 space-y-1 rounded border border-ink-700/50 bg-ink-900/40 px-3 py-2 text-xs text-ink-200">
+                {typeof gscMeta.dateMeaning === 'string' ? (
+                  <div>
+                    Смысл даты:{' '}
+                    <span className="text-ink-100">{String(gscMeta.dateMeaning)}</span>
+                  </div>
+                ) : null}
+                {typeof gscMeta.date === 'string' ? (
+                  <div>
+                    Календарная дата: <span className="text-ink-100">{gscMeta.date}</span>
+                  </div>
+                ) : null}
+                {typeof gscMeta.searchedFrom === 'string' &&
+                typeof gscMeta.searchedTo === 'string' ? (
+                  <div>
+                    Диапазон поиска API:{' '}
+                    <span className="text-ink-100">
+                      {gscMeta.searchedFrom} … {gscMeta.searchedTo}
+                    </span>
+                  </div>
+                ) : null}
+                {typeof gscMeta.previousAutomaticDate === 'string' &&
+                typeof gscMeta.newAutomaticDate === 'string' ? (
+                  <div>
+                    Уточнение:{' '}
+                    <span className="text-ink-100">
+                      {gscMeta.previousAutomaticDate} → {gscMeta.newAutomaticDate}
+                    </span>
+                  </div>
+                ) : null}
+                <div className="text-[11px] text-ink-200">
+                  Дата факта выше · записано при синхронизации ниже.
                 </div>
               </div>
             ) : null}

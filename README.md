@@ -103,8 +103,36 @@ Never use `NEXT_PUBLIC_` for the token.
 3. Open http://127.0.0.1:8082/integrations
 4. «Проверить подключение» → «Синхронизировать сайты»
 
+## GSC sync env (server-only)
+
+- `GSC_BASE_URL` — e.g. `http://localhost:3001`
+- `GSC_LOW_API_TOKEN` — same Bearer token as GSC `GSC_LOW_API_TOKEN`
+- `GSC_REQUEST_TIMEOUT_MS` — default `15000`
+- `GSC_SYNC_PAGE_SIZE` — default `100`
+- `GSC_LIFECYCLE_CONCURRENCY` — default `2`
+- `GSC_LIFECYCLE_MAX_PROPERTIES_PER_RUN` — default `20`
+
+Google OAuth access/refresh tokens are **never** copied into LOW.
+
+### Manual GSC sync
+
+1. Start GSC Portfolio Dashboard with `GSC_LOW_API_TOKEN` set (different port from DSD/LOW).
+2. Put the same token into LOW `.env` as `GSC_LOW_API_TOKEN`.
+3. Open http://127.0.0.1:8082/integrations
+4. «Проверить подключение» → «Синхронизировать свойства» → «Найти первые показы и клики»
+
+`firstSeenAt` / `gscFirstSeenAt` = first import into the GSC app. Impression/click dates = earliest available via Search Console API lookback.
+
+## Local ports (example)
+
+| App | Port |
+| --- | --- |
+| DSD | 3000 |
+| GSC | 3001 |
+| LOW | 8082 |
+
 ## Iteration 1 status
 
-**Done:** core app, RU UI, timeline, key dates, manual DSD read-only sync.
+**Done:** core app, RU UI, timeline, key dates, manual DSD sync, manual GSC properties + lifecycle sync.
 
-**Next:** worker/cron for DSD (optional), then GSC read-only sync.
+**Next:** unified worker/cron for DSD and GSC (optional). Production deploy not part of this stage.

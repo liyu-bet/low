@@ -189,8 +189,9 @@ model WebsiteIntegration {
   website          Website           @relation(fields: [websiteId], references: [id], onDelete: Cascade)
   accountReference AccountReference? @relation(fields: [accountReferenceId], references: [id], onDelete: SetNull)
 
-  @@unique([websiteId, system])
-  @@index([system, externalEntityId])
+  /// One external entity per system (allows multiple GSC properties per website).
+  @@unique([system, externalEntityId])
+  @@index([websiteId, system])
   @@index([system, externalKey])
   @@index([accountReferenceId])
 }

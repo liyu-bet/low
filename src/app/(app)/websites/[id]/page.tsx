@@ -7,6 +7,7 @@ import { EventForm } from '@/components/EventForm';
 import { EventTimeline } from '@/components/EventTimeline';
 import { KeyDatesSection } from '@/components/KeyDatesSection';
 import { WebsiteDsdBlock } from '@/components/WebsiteDsdBlock';
+import { WebsiteGscBlock } from '@/components/WebsiteGscBlock';
 import { prisma } from '@/lib/db/prisma';
 import { listWebsiteEvents } from '@/lib/events/service';
 import { formatDateRu, labelLifecycleStage, labelWebsiteStatus } from '@/lib/ui/labels';
@@ -29,13 +30,18 @@ export default async function WebsiteDetailPage({
 
   const events = await listWebsiteEvents(id);
   const createEvent = createManualEventAction.bind(null, website.id);
-  const dsdIntegration = await prisma.websiteIntegration.findUnique({
+  const dsdIntegration = await prisma.websiteIntegration.findFirst({
     where: {
-      websiteId_system: {
-        websiteId: website.id,
-        system: IntegrationSystem.DSD,
-      },
+      websiteId: website.id,
+      system: IntegrationSystem.DSD,
     },
+  });
+  const gscIntegrations = await prisma.websiteIntegration.findMany({
+    where: {
+      websiteId: website.id,
+      system: IntegrationSystem.GSC,
+    },
+    orderBy: { createdAt: 'asc' },
   });
 
   return (
@@ -85,6 +91,13 @@ export default async function WebsiteDetailPage({
       <KeyDatesSection website={website} />
 
       <WebsiteDsdBlock integration={dsdIntegration} />
+
+      <WebsiteGscBlock
+        integrations={gscIntegrations}
+        gscFirstSeenAt={website.gscFirstSeenAt}
+        firstImpressionAt={website.firstImpressionAt}
+        firstClickAt={website.firstClickAt}
+      />
 
       <section className="space-y-4">
         <div>

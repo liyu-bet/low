@@ -12,6 +12,12 @@ export const EVENT_TYPE_DSD_SERVER_CHANGED = 'DSD_SERVER_CHANGED';
 export const EVENT_TYPE_DSD_IP_CHANGED = 'DSD_IP_CHANGED';
 export const EVENT_TYPE_DOMAIN_EXPIRATION_CHANGED = 'DOMAIN_EXPIRATION_CHANGED';
 
+export const EVENT_TYPE_GSC_PROPERTY_FIRST_SEEN = 'GSC_PROPERTY_FIRST_SEEN';
+export const EVENT_TYPE_GSC_FIRST_IMPRESSION = 'GSC_FIRST_IMPRESSION';
+export const EVENT_TYPE_GSC_FIRST_CLICK = 'GSC_FIRST_CLICK';
+export const EVENT_TYPE_GSC_FIRST_IMPRESSION_REFINED = 'GSC_FIRST_IMPRESSION_REFINED';
+export const EVENT_TYPE_GSC_FIRST_CLICK_REFINED = 'GSC_FIRST_CLICK_REFINED';
+
 export const APP_NAME = 'LOW';
 export const APP_FULL_NAME = 'The Life of Websites';
 
@@ -19,3 +25,5 @@ export const AUTH_COOKIE_NAME = 'low_session';
 export const SESSION_TTL_SECONDS = 60 * 60 * 24 * 14;
 
 export const DSD_SYNC_JOB_TYPE = 'manual_full_sync';
+export const GSC_PROPERTIES_SYNC_JOB_TYPE = 'manual_properties_sync';
+export const GSC_LIFECYCLE_SYNC_JOB_TYPE = 'manual_lifecycle_sync';

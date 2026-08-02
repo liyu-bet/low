@@ -45,7 +45,7 @@ LOW does **not** replace DSD or GSC. It correlates lifecycle facts and work hist
 - Separate worker process
 - Cookie-based single-admin authentication
 
-**Out of scope for iteration 1:** Redis, queues, multi-user roles, AI features, complex analytics, live DSD/GSC sync clients.
+**Out of scope for iteration 1:** Redis, queues, multi-user roles, AI features, complex analytics, background workers for DSD/GSC.
 
 ## 5. Domain model
 
@@ -160,7 +160,7 @@ Must:
 
 ```text
 LOW  --read-only M2M Bearer-->  DSD GET /api/integrations/low/*
-LOW  --read-only M2M-->  GSC API (not implemented yet)
+LOW  --read-only M2M Bearer-->  GSC GET /api/integrations/low/*
 ```
 
 ### DSD (manual full sync)
@@ -176,6 +176,22 @@ Server-only env: `DSD_BASE_URL`, `DSD_LOW_API_TOKEN`, `DSD_REQUEST_TIMEOUT_MS`, 
 
 UI: `/integrations` (health + sync) and DSD block on website detail.
 
+### GSC (manual properties + lifecycle)
+
+Server-only env: `GSC_BASE_URL`, `GSC_LOW_API_TOKEN`, `GSC_REQUEST_TIMEOUT_MS`, `GSC_SYNC_PAGE_SIZE`, `GSC_LIFECYCLE_CONCURRENCY`, `GSC_LIFECYCLE_MAX_PROPERTIES_PER_RUN`.
+
+- Shared service token with GSC `GSC_LOW_API_TOKEN` (never Google OAuth tokens).
+- Property matching: integration by `system+externalEntityId` → `normalizeGscPropertyUrl` → `Website.normalizedDomain` → create Website.
+- Multiple GSC properties may link to one Website; each property has its own `WebsiteIntegration`.
+- Ambiguous remapping conflicts are recorded; other properties continue.
+- `gscFirstSeenAt` = earliest import into the GSC app (`firstSeenAt`), never overwrites an earlier value with a later one; `gscAddedAtManual` untouched.
+- Lifecycle job fills `firstImpressionAt` / `firstClickAt` only when null, or refines to an earlier automatic date (`GSC_*_REFINED`); manual overrides untouched.
+- Date meaning: `earliest_available_in_search_console_api` (not guaranteed first-ever history).
+- Separate SyncRuns: `manual_properties_sync`, `manual_lifecycle_sync`.
+- No worker/cron yet; DSD and GSC syncs are never one transaction.
+
+UI: `/integrations` GSC block + website GSC properties panel.
+
 ## 9. Iteration 1 scope
 
 1. App skeleton + Docker Compose
@@ -189,17 +205,18 @@ UI: `/integrations` (health + sync) and DSD block on website detail.
 9. Event timeline
 10. Key dates + manual overrides
 11. Manual DSD read-only sync
-12. README + `.env.example`
+12. Manual GSC read-only properties + lifecycle sync
+13. README + `.env.example`
 
 ## 10. Explicit non-goals (current)
 
-- Worker/cron DSD polling
-- GSC sync
+- Worker/cron for DSD/GSC
 - Redis / external queues
 - Multi-admin RBAC
 - AI assistants
 - Analytics dashboards
 - Direct DSD/GSC database access
+- Copying Google OAuth tokens into LOW
 
 ## 11. File map (iteration 1 target)
 
