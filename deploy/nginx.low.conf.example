@@ -1,3 +1,10 @@
+# Example nginx site for LOW (HTTP). After first deploy Certbot manages SSL.
+# Copy to /etc/nginx/sites-available/low then enable and run certbot.
+#
+# Optional rate limit (place in http {} of nginx.conf, not here):
+#   limit_req_zone $binary_remote_addr zone=low_login:10m rate=10r/m;
+# Then inside location = /login: limit_req zone=low_login burst=20 nodelay;
+
 server {
     listen 80;
     server_name low.liyu.bet;
@@ -11,6 +18,9 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         expires 1y;
         add_header Cache-Control "public, max-age=31536000, immutable";
+        add_header X-Content-Type-Options nosniff always;
+        add_header X-Frame-Options SAMEORIGIN always;
+        add_header Referrer-Policy strict-origin-when-cross-origin always;
     }
 
     location / {
@@ -25,5 +35,9 @@ server {
         proxy_hide_header Cache-Control;
         proxy_hide_header Expires;
         add_header Cache-Control "no-store" always;
+        add_header X-Content-Type-Options nosniff always;
+        add_header X-Frame-Options SAMEORIGIN always;
+        add_header Referrer-Policy strict-origin-when-cross-origin always;
+        add_header Permissions-Policy "geolocation=(), microphone=(), camera=()" always;
     }
 }

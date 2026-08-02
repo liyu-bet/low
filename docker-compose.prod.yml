@@ -1,5 +1,12 @@
 # Production stack for LOW — images from GHCR only (no build on the server).
-# Deploy order (see GitHub Actions): pull → up postgres → run --rm migrate → up web worker.
+# Pin images with LOW_IMAGE_TAG=<short-sha> (fallback: latest).
+# Deploy order: pull → up postgres → backup (if DB exists) → run --rm migrate → up web worker.
+#
+# Rollback (no migrate downgrade):
+#   export LOW_IMAGE_TAG=<previous-sha>
+#   docker compose -p low-production --env-file .env -f docker-compose.prod.yml pull
+#   docker compose -p low-production --env-file .env -f docker-compose.prod.yml --profile migrate run --rm migrate
+#   docker compose -p low-production --env-file .env -f docker-compose.prod.yml up -d web worker
 
 services:
   postgres:

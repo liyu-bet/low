@@ -27,6 +27,9 @@ jobs:
       ADMIN_EMAIL: ci@example.com
       ADMIN_PASSWORD: ci-password-not-used
       NEXT_TELEMETRY_DISABLED: "1"
+      POSTGRES_USER: low
+      POSTGRES_PASSWORD: ci-password
+      POSTGRES_DB: low
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -37,6 +40,14 @@ jobs:
       - run: npx prisma validate
       - run: npm run typecheck
       - run: npm test
+      - run: npm run build
+      - name: Dummy .env for compose config
+        run: |
+          printf 'DATABASE_URL=postgresql://low:ci-password@postgres:5432/low\n' > .env
+      - name: Compose config (prod)
+        run: docker compose -f docker-compose.prod.yml config -q
+      - name: Compose config (dev)
+        run: docker compose config -q
 
   build-and-push:
     needs: validate
@@ -91,6 +102,8 @@ jobs:
     needs: build-and-push
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    env:
+      LOW_IMAGE_TAG: ${{ needs.build-and-push.outputs.short_sha }}
     steps:
       - uses: actions/checkout@v4
 
@@ -100,16 +113,19 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "docker-compose.prod.yml,deploy/nginx.low.conf.example,deploy/backup-postgres.sh,deploy/smoke-test.sh"
+          source: "docker-compose.prod.yml,deploy/nginx.low.conf.example,deploy/backup-postgres.sh,deploy/smoke-test.sh,deploy/rollback.sh"
           target: /var/www/low
           overwrite: true
 
       - name: Pull images and restart stack
         uses: appleboy/ssh-action@v1.2.0
+        env:
+          LOW_IMAGE_TAG: ${{ needs.build-and-push.outputs.short_sha }}
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          envs: LOW_IMAGE_TAG
           script_stop: true
           script: |
             set -euo pipefail
@@ -117,36 +133,60 @@ jobs:
             test -f .env
             command -v docker >/dev/null
             docker compose version >/dev/null
+            test -n "${LOW_IMAGE_TAG}"
 
-            chmod +x deploy/backup-postgres.sh deploy/smoke-test.sh 2>/dev/null || true
+            export LOW_IMAGE_TAG
+            echo "Deploying LOW_IMAGE_TAG=${LOW_IMAGE_TAG}"
 
-            if docker compose -p low-production --env-file .env -f docker-compose.prod.yml ps --status running postgres 2>/dev/null | grep -q postgres; then
-              echo "Existing postgres detected — creating backup"
-              ./deploy/backup-postgres.sh /var/www/low || echo "Backup skipped (non-fatal if first deploy)"
+            chmod +x deploy/backup-postgres.sh deploy/smoke-test.sh deploy/rollback.sh
+
+            COMPOSE=(docker compose -p low-production --env-file .env -f docker-compose.prod.yml)
+
+            # Detect existing database volume/data (first deploy can skip backup)
+            FIRST_DEPLOY=1
+            if "${COMPOSE[@]}" ps --status running postgres 2>/dev/null | grep -q postgres; then
+              FIRST_DEPLOY=0
+            elif docker volume ls -q | grep -qx 'low-production_low_postgres_data'; then
+              # Volume exists from prior run even if container stopped
+              FIRST_DEPLOY=0
             fi
 
-            docker compose -p low-production --env-file .env -f docker-compose.prod.yml pull
+            "${COMPOSE[@]}" pull
 
-            docker compose -p low-production --env-file .env -f docker-compose.prod.yml up -d postgres
+            "${COMPOSE[@]}" up -d postgres
 
             echo "Waiting for postgres healthy..."
-            for i in $(seq 1 30); do
-              if docker compose -p low-production --env-file .env -f docker-compose.prod.yml ps postgres | grep -qi healthy; then
+            for i in $(seq 1 45); do
+              if "${COMPOSE[@]}" ps postgres | grep -qi healthy; then
                 break
               fi
               sleep 2
-              if [ "$i" -eq 30 ]; then
+              if [ "$i" -eq 45 ]; then
                 echo "Postgres not healthy in time"
-                docker compose -p low-production --env-file .env -f docker-compose.prod.yml logs --tail=80 postgres || true
+                "${COMPOSE[@]}" logs --tail=80 postgres || true
                 exit 1
               fi
             done
 
-            docker compose -p low-production --env-file .env -f docker-compose.prod.yml --profile migrate run --rm migrate
+            if [ "${FIRST_DEPLOY}" = "0" ]; then
+              echo "Existing database detected — mandatory verified backup"
+              ./deploy/backup-postgres.sh /var/www/low
+            else
+              echo "First deploy — backup skipped (no existing database)"
+            fi
 
-            docker compose -p low-production --env-file .env -f docker-compose.prod.yml up -d web worker
+            "${COMPOSE[@]}" --profile migrate run --rm migrate
 
-            sleep 5
+            "${COMPOSE[@]}" up -d web worker
+
+            sleep 8
             ./deploy/smoke-test.sh http://127.0.0.1:8082
 
-            docker compose -p low-production --env-file .env -f docker-compose.prod.yml ps
+            echo "Running images:"
+            "${COMPOSE[@]}" ps
+            WEB_IMG="$("${COMPOSE[@]}" ps --format '{{.Image}}' web || true)"
+            WORKER_IMG="$("${COMPOSE[@]}" ps --format '{{.Image}}' worker || true)"
+            echo "web_image=${WEB_IMG}"
+            echo "worker_image=${WORKER_IMG}"
+            echo "${WEB_IMG}" | grep -q "${LOW_IMAGE_TAG}"
+            echo "${WORKER_IMG}" | grep -q "${LOW_IMAGE_TAG}"

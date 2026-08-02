@@ -51,6 +51,10 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Dummy .env for compose config
+        run: |
+          printf 'DATABASE_URL=postgresql://low:ci-password@postgres:5432/low\nPOSTGRES_PASSWORD=ci-password\n' > .env
+
       - name: Compose config (dev)
         env:
           POSTGRES_USER: low

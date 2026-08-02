@@ -151,6 +151,6 @@ Run locally: `npm run worker:start`. Compose service: `worker` (no published por
 
 **Done:** core app, RU UI, timeline, key dates, manual + background DSD/GSC sync worker.
 
-**Production:** `https://low.liyu.bet` via GHCR images + `docker-compose.prod.yml` (project `low-production`). Deploy workflow: `.github/workflows/publish-images.yml`. Server env is uploaded separately (never via git).
+**Production:** `https://low.liyu.bet` via GHCR images + `docker-compose.prod.yml` (project `low-production`). Deploy workflow: `.github/workflows/publish-images.yml` pins `LOW_IMAGE_TAG=<short-sha>`. Server env is uploaded separately (never via git). Rollback: `./deploy/rollback.sh <previous-sha>` (does not downgrade migrations).
 
 **Next:** change admin credentials on the server when ready.
