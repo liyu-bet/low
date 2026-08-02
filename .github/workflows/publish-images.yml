@@ -1,0 +1,152 @@
+name: Publish images and deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: low-production-deploy
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_WEB: ghcr.io/liyu-bet/low-web
+  IMAGE_WORKER: ghcr.io/liyu-bet/low-worker
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://low:low@127.0.0.1:5432/low
+      SESSION_SECRET: ci-session-secret-at-least-32-characters-long
+      ADMIN_EMAIL: ci@example.com
+      ADMIN_PASSWORD: ci-password-not-used
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npx prisma validate
+      - run: npm run typecheck
+      - run: npm test
+
+  build-and-push:
+    needs: validate
+    runs-on: ubuntu-latest
+    outputs:
+      short_sha: ${{ steps.sha.outputs.short }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Short SHA
+        id: sha
+        run: echo "short=$(echo ${{ github.sha }} | cut -c1-7)" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push web
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          target: web
+          push: true
+          tags: |
+            ${{ env.IMAGE_WEB }}:latest
+            ${{ env.IMAGE_WEB }}:${{ steps.sha.outputs.short }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push worker
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          target: worker
+          push: true
+          tags: |
+            ${{ env.IMAGE_WORKER }}:latest
+            ${{ env.IMAGE_WORKER }}:${{ steps.sha.outputs.short }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    name: Deploy on server
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Upload deployment files
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "docker-compose.prod.yml,deploy/nginx.low.conf.example,deploy/backup-postgres.sh,deploy/smoke-test.sh"
+          target: /var/www/low
+          overwrite: true
+
+      - name: Pull images and restart stack
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script_stop: true
+          script: |
+            set -euo pipefail
+            cd /var/www/low
+            test -f .env
+            command -v docker >/dev/null
+            docker compose version >/dev/null
+
+            chmod +x deploy/backup-postgres.sh deploy/smoke-test.sh 2>/dev/null || true
+
+            if docker compose -p low-production --env-file .env -f docker-compose.prod.yml ps --status running postgres 2>/dev/null | grep -q postgres; then
+              echo "Existing postgres detected — creating backup"
+              ./deploy/backup-postgres.sh /var/www/low || echo "Backup skipped (non-fatal if first deploy)"
+            fi
+
+            docker compose -p low-production --env-file .env -f docker-compose.prod.yml pull
+
+            docker compose -p low-production --env-file .env -f docker-compose.prod.yml up -d postgres
+
+            echo "Waiting for postgres healthy..."
+            for i in $(seq 1 30); do
+              if docker compose -p low-production --env-file .env -f docker-compose.prod.yml ps postgres | grep -qi healthy; then
+                break
+              fi
+              sleep 2
+              if [ "$i" -eq 30 ]; then
+                echo "Postgres not healthy in time"
+                docker compose -p low-production --env-file .env -f docker-compose.prod.yml logs --tail=80 postgres || true
+                exit 1
+              fi
+            done
+
+            docker compose -p low-production --env-file .env -f docker-compose.prod.yml --profile migrate run --rm migrate
+
+            docker compose -p low-production --env-file .env -f docker-compose.prod.yml up -d web worker
+
+            sleep 5
+            ./deploy/smoke-test.sh http://127.0.0.1:8082
+
+            docker compose -p low-production --env-file .env -f docker-compose.prod.yml ps

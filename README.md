@@ -151,4 +151,6 @@ Run locally: `npm run worker:start`. Compose service: `worker` (no published por
 
 **Done:** core app, RU UI, timeline, key dates, manual + background DSD/GSC sync worker.
 
-**Next:** production deploy only when explicitly requested.
+**Production:** `https://low.liyu.bet` via GHCR images + `docker-compose.prod.yml` (project `low-production`). Deploy workflow: `.github/workflows/publish-images.yml`. Server env is uploaded separately (never via git).
+
+**Next:** change admin credentials on the server when ready.
