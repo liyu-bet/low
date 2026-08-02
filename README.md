@@ -6,6 +6,31 @@ LOW is a **separate app** with a **separate PostgreSQL database**. It does not r
 
 See [SPEC.md](./SPEC.md) for architecture rules and the data model.
 
+## LOW v1 — scope (complete)
+
+Implemented:
+
+- Core website registry (CRUD, soft archive)
+- Website event timeline / journal
+- Key dates with manual overrides (effective dates)
+- DSD read-only sync (health, DNS, domain expiry, server)
+- GSC properties + lifecycle sync (first impressions / clicks)
+- Background worker (JobLock, heartbeat, scheduled sync)
+- Attention dashboard (`/dashboard`)
+- Website tasks and planning (`/tasks`)
+- Bulk website operations
+- Complete website profile (`/websites/[id]`)
+- Portfolio lifecycle reports (`/reports`)
+- GHCR production deployment (`https://low.liyu.bet`)
+
+**Explicitly out of LOW v1 (do not add):**
+
+- Notifications (email, Telegram, push, alert delivery)
+- Finance module / financial reports
+- Search ranking / position / SERP tracking
+- Extra uptime monitoring — site availability comes from **DSD** only; LOW does not duplicate DSD monitoring
+- AI, Redis, new background job types, new external integrations
+
 ## Stack
 
 - Next.js (App Router) + TypeScript
@@ -76,7 +101,7 @@ docker compose up --build
 | `npm run dev` | Next.js dev server on :8082 |
 | `npm run build` | Prisma generate + production build |
 | `npm run typecheck` | TypeScript |
-| `npm test` | Unit tests (domain, auth guard, website prep) |
+| `npm test` | Unit tests |
 | `npm run db:validate` | Prisma schema validation |
 | `npm run db:check` | `SELECT 1` against local Postgres |
 | `npm run worker:start` | Unified DSD/GSC sync worker |
@@ -147,10 +172,15 @@ Run locally: `npm run worker:start`. Compose service: `worker` (no published por
 | GSC | 3001 |
 | LOW | 8082 |
 
-## Iteration status
+## Production
 
-**Done:** core app, RU UI, timeline, key dates, manual + background DSD/GSC sync worker.
+- URL: `https://low.liyu.bet`
+- Images: GHCR (`ghcr.io/liyu-bet/low-web`, `low-worker`), tag pinned as `LOW_IMAGE_TAG=<short-sha>`
+- Compose: `docker-compose.prod.yml`, project `low-production`
+- Deploy: `.github/workflows/publish-images.yml`
+- Server env is uploaded separately (never via git)
+- Rollback: `./deploy/rollback.sh <previous-sha>` (does not downgrade migrations)
 
-**Production:** `https://low.liyu.bet` via GHCR images + `docker-compose.prod.yml` (project `low-production`). Deploy workflow: `.github/workflows/publish-images.yml` pins `LOW_IMAGE_TAG=<short-sha>`. Server env is uploaded separately (never via git). Rollback: `./deploy/rollback.sh <previous-sha>` (does not downgrade migrations).
+## Roadmap after v1
 
-**Next:** change admin credentials on the server when ready.
+LOW v1 is **complete**. Further product modules (notifications, finance, rank tracking) are intentionally deferred and are **not** part of the current scope.

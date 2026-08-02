@@ -23,7 +23,7 @@ export function TaskReport({ summary }: { summary: TaskReportSummary }) {
         <div>
           <h2 className="font-display text-2xl text-sand-100">Задачи</h2>
           <p className="mt-1 text-sm text-ink-200">
-            Canceled не считаются выполненными. Без completedAt — вне длительности.
+            Отменённые задачи не считаются выполненными. Без даты выполнения — вне длительности.
           </p>
         </div>
         <Link href="/tasks" className="text-sm text-moss-300 hover:text-moss-200">

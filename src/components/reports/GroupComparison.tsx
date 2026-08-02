@@ -27,9 +27,9 @@ export function GroupComparison({
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className="font-display text-2xl text-sand-100">Сравнение групп</h2>
-          <p className="mt-1 text-sm text-ink-200">Без N+1: агрегация по уже загруженной выборке.</p>
+          <p className="mt-1 text-sm text-ink-200">Агрегация по уже загруженной выборке.</p>
         </div>
-        <form method="get" action="/reports" className="flex items-center gap-2 text-sm">
+        <form method="get" action="/reports" className="flex flex-wrap items-center gap-2 text-sm">
           {filters.period !== 'all' ? <input type="hidden" name="period" value={filters.period} /> : null}
           {filters.from ? <input type="hidden" name="from" value={filters.from} /> : null}
           {filters.to ? <input type="hidden" name="to" value={filters.to} /> : null}
@@ -52,7 +52,7 @@ export function GroupComparison({
             </select>
           </label>
           <button type="submit" className="rounded border border-ink-700 px-3 py-1.5 text-ink-100">
-            OK
+            Применить
           </button>
         </form>
       </div>

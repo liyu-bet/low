@@ -29,7 +29,9 @@ export function WebsiteStatusOverview({
           label="Подключение GSC"
           value={
             overview.gscLinkedCount > 0
-              ? `${overview.gscLinkedCount} properties`
+              ? `${overview.gscLinkedCount} ${
+                  overview.gscLinkedCount === 1 ? 'свойство' : 'свойств'
+                }`
               : 'Нет данных'
           }
         />

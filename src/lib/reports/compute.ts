@@ -173,7 +173,7 @@ export function buildStageDistribution(
         label: LIFECYCLE_STAGE_LABELS[stage],
         count,
         pct: total === 0 ? 0 : Math.round((count / total) * 1000) / 10,
-        href: `/websites`,
+        href: `/dashboard?stage=${stage}`,
       };
     })
     .filter((row) => includeArchived || row.stage !== 'ARCHIVED' || row.count > 0);

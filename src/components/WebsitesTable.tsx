@@ -209,82 +209,122 @@ export function WebsitesTable({ websites }: { websites: WebsiteTableRow[] }) {
           Ничего не найдено по запросу «{query.trim()}».
         </p>
       ) : (
-        <div className="overflow-x-auto rounded border border-ink-700/70">
-          <table className="min-w-full text-left text-sm">
-            <thead className="bg-ink-900/80 text-ink-200">
-              <tr>
-                <th className="w-10 px-3 py-3">
-                  <label className="inline-flex items-center gap-2">
+        <>
+          <ul className="space-y-2 md:hidden">
+            {filteredSorted.map((site) => {
+              const selected = selectedIds.includes(site.id);
+              return (
+                <li
+                  key={site.id}
+                  className={`rounded border border-ink-700/70 bg-ink-950/40 p-3 ${
+                    selected ? 'border-moss-600/60 bg-moss-500/10' : ''
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
                     <input
                       type="checkbox"
-                      checked={allVisibleSelected}
-                      onChange={toggleAllVisible}
-                      aria-label="Выбрать все показанные"
-                      className="h-4 w-4 accent-moss-500"
+                      checked={selected}
+                      onChange={() => toggleOne(site.id)}
+                      aria-label={`Выбрать ${site.domain}`}
+                      className="mt-1 h-4 w-4 accent-moss-500"
                     />
-                    <span className="sr-only">Выбрать все показанные</span>
-                  </label>
-                </th>
-                {COLUMNS.map((column) => (
-                  <th key={column.key} className="px-4 py-3 font-medium">
-                    <button
-                      type="button"
-                      onClick={() => onSort(column.key)}
-                      className="inline-flex items-center hover:text-sand-100"
-                    >
-                      {column.label}
-                      <SortMark active={sortKey === column.key} dir={sortDir} />
-                    </button>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filteredSorted.map((site) => {
-                const selected = selectedIds.includes(site.id);
-                return (
-                  <tr
-                    key={site.id}
-                    className={`border-t border-ink-700/50 hover:bg-ink-900/40 ${
-                      selected ? 'bg-moss-500/10' : ''
-                    }`}
-                  >
-                    <td className="px-3 py-3">
-                      <input
-                        type="checkbox"
-                        checked={selected}
-                        onChange={() => toggleOne(site.id)}
-                        aria-label={`Выбрать ${site.domain}`}
-                        className="h-4 w-4 accent-moss-500"
-                      />
-                    </td>
-                    <td className="px-4 py-3">
+                    <div className="min-w-0 flex-1">
                       <Link
                         href={`/websites/${site.id}`}
-                        className="font-medium text-sand-100 hover:underline"
+                        className="break-all font-medium text-sand-100 hover:underline"
                       >
                         {site.domain}
                       </Link>
-                      <div className="text-xs text-ink-200">{site.normalizedDomain}</div>
-                    </td>
-                    <td className="px-4 py-3 text-ink-100">{site.name ?? '—'}</td>
-                    <td className="px-4 py-3 text-ink-100">{labelWebsiteStatus(site.status)}</td>
-                    <td className="px-4 py-3 text-ink-100">
-                      {labelLifecycleStage(site.lifecycleStage)}
-                    </td>
-                    <td className="px-4 py-3 text-ink-100">{site.group ?? '—'}</td>
-                    <td className="px-4 py-3 text-ink-200">
-                      {formatDateRu(new Date(site.updatedAt))}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                      <div className="mt-1 text-sm text-ink-100">{site.name ?? '—'}</div>
+                      <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-ink-200">
+                        <span>{labelWebsiteStatus(site.status)}</span>
+                        <span>{labelLifecycleStage(site.lifecycleStage)}</span>
+                        <span>{site.group ?? 'Без группы'}</span>
+                        <span>{formatDateRu(new Date(site.updatedAt))}</span>
+                      </div>
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+
+          <div className="hidden overflow-x-auto rounded border border-ink-700/70 md:block">
+            <table className="min-w-full text-left text-sm">
+              <thead className="bg-ink-900/80 text-ink-200">
+                <tr>
+                  <th className="w-10 px-3 py-3">
+                    <label className="inline-flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={allVisibleSelected}
+                        onChange={toggleAllVisible}
+                        aria-label="Выбрать все показанные"
+                        className="h-4 w-4 accent-moss-500"
+                      />
+                      <span className="sr-only">Выбрать все показанные</span>
+                    </label>
+                  </th>
+                  {COLUMNS.map((column) => (
+                    <th key={column.key} className="px-4 py-3 font-medium">
+                      <button
+                        type="button"
+                        onClick={() => onSort(column.key)}
+                        className="inline-flex items-center hover:text-sand-100"
+                      >
+                        {column.label}
+                        <SortMark active={sortKey === column.key} dir={sortDir} />
+                      </button>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filteredSorted.map((site) => {
+                  const selected = selectedIds.includes(site.id);
+                  return (
+                    <tr
+                      key={site.id}
+                      className={`border-t border-ink-700/50 hover:bg-ink-900/40 ${
+                        selected ? 'bg-moss-500/10' : ''
+                      }`}
+                    >
+                      <td className="px-3 py-3">
+                        <input
+                          type="checkbox"
+                          checked={selected}
+                          onChange={() => toggleOne(site.id)}
+                          aria-label={`Выбрать ${site.domain}`}
+                          className="h-4 w-4 accent-moss-500"
+                        />
+                      </td>
+                      <td className="px-4 py-3">
+                        <Link
+                          href={`/websites/${site.id}`}
+                          className="font-medium text-sand-100 hover:underline"
+                        >
+                          {site.domain}
+                        </Link>
+                        <div className="text-xs text-ink-200">{site.normalizedDomain}</div>
+                      </td>
+                      <td className="px-4 py-3 text-ink-100">{site.name ?? '—'}</td>
+                      <td className="px-4 py-3 text-ink-100">{labelWebsiteStatus(site.status)}</td>
+                      <td className="px-4 py-3 text-ink-100">
+                        {labelLifecycleStage(site.lifecycleStage)}
+                      </td>
+                      <td className="px-4 py-3 text-ink-100">{site.group ?? '—'}</td>
+                      <td className="px-4 py-3 text-ink-200">
+                        {formatDateRu(new Date(site.updatedAt))}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
-      {/* Mobile-friendly card list with checkboxes when table is hard to use — keep table with horizontal scroll as primary */}
       <WebsitesBulkPanel
         selectedIds={selectedIds}
         websitesById={websitesById}

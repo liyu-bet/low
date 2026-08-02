@@ -24,7 +24,6 @@ export default async function ReportsPage({
         <h1 className="font-display text-3xl text-sand-100">Отчёты</h1>
         <p className="max-w-2xl text-sm text-ink-200">
           Аналитика жизненного цикла портфеля: воронка, скорость этапов, группы и активность.
-          Финансовый модуль не входит в этот отчёт.
         </p>
       </header>
 
@@ -43,7 +42,7 @@ export default async function ReportsPage({
       <section className="rounded border border-ink-700/70 bg-ink-950/40 p-4">
         <h2 className="font-display text-2xl text-sand-100">Экспорт CSV</h2>
         <p className="mt-1 text-sm text-ink-200">
-          Текущая отфильтрованная выборка, effective dates, до 10&nbsp;000 сайтов. UTF-8 BOM.
+          Текущая отфильтрованная выборка, эффективные даты, до 10&nbsp;000 сайтов. UTF-8 BOM.
         </p>
         <a
           href={data.exportHref}

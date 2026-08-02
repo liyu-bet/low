@@ -7,7 +7,7 @@ export function StuckWebsites({ categories }: { categories: StuckCategory[] }) {
       <div>
         <h2 className="font-display text-2xl text-sand-100">Застряли на этапе</h2>
         <p className="mt-1 text-sm text-ink-200">
-          Пороги как в attention-логике дашборда, где применимо. Без отдельных записей в БД.
+          Пороги как в логике внимания на обзоре, где применимо. Без отдельных записей в БД.
         </p>
       </div>
       <div className="grid gap-4 lg:grid-cols-2">

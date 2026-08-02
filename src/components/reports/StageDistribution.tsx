@@ -8,7 +8,7 @@ export function StageDistribution({ rows }: { rows: StageCountRow[] }) {
     <section className="space-y-3">
       <div>
         <h2 className="font-display text-2xl text-sand-100">Распределение по стадиям</h2>
-        <p className="mt-1 text-sm text-ink-200">Текущий lifecycle stage в выборке.</p>
+        <p className="mt-1 text-sm text-ink-200">Текущий этап жизненного цикла в выборке.</p>
       </div>
       <div className="space-y-2">
         {rows.map((row) => (

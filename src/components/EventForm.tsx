@@ -42,7 +42,7 @@ export function EventForm({ action }: Props) {
       <div>
         <h3 className="font-display text-xl text-sand-100">Записать работу</h3>
         <p className="mt-1 text-sm text-ink-200">
-          Быстрая запись в журнал сайта. После сохранения timeline и lastWorkAt обновятся.
+          Быстрая запись в журнал сайта. После сохранения обновятся лента событий и дата последней работы.
         </p>
         <div className="mt-3 flex flex-wrap gap-2 text-xs">
           {[

@@ -1,4 +1,4 @@
-import { formatDateTimeRu } from '@/lib/ui/labels';
+import { formatDateTimeRu, labelSyncRunStatus } from '@/lib/ui/labels';
 import { isDsdConfigured } from '@/lib/dsd/config';
 import { getLatestDsdSyncRun } from '@/lib/dsd/sync';
 import { getGscBaseUrlForDisplay, isGscConfigured } from '@/lib/gsc/config';
@@ -28,7 +28,7 @@ function SyncRunDetails({
         <dl className="mt-2 grid gap-2 sm:grid-cols-2">
           <div>
             <dt>Статус</dt>
-            <dd className="text-ink-50">{latest.status}</dd>
+            <dd className="text-ink-50">{labelSyncRunStatus(latest.status)}</dd>
           </div>
           <div>
             <dt>Тип / триггер</dt>
@@ -100,7 +100,7 @@ export default async function IntegrationsPage() {
         <div>
           <h2 className="font-display text-2xl text-sand-100">Фоновая синхронизация</h2>
           <p className="mt-1 text-sm text-ink-200">
-            Отдельный worker process по расписанию. Ручные кнопки ниже используют те же блокировки.
+            Отдельный фоновый процесс по расписанию. Ручные кнопки ниже используют те же блокировки.
           </p>
         </div>
         <dl className="grid gap-3 text-sm text-ink-200 sm:grid-cols-2 lg:grid-cols-3">
@@ -145,7 +145,7 @@ export default async function IntegrationsPage() {
               <li key={job.jobType} className="grid gap-1 sm:grid-cols-3">
                 <span className="text-ink-50">{job.label}</span>
                 <span>
-                  Последний: {job.lastRun ? `${job.lastRun.status}` : '—'}
+                  Последний: {job.lastRun ? labelSyncRunStatus(job.lastRun.status) : '—'}
                   {job.lastRun?.finishedAt
                     ? ` · ${formatDateTimeRu(job.lastRun.finishedAt)}`
                     : ''}

@@ -45,7 +45,7 @@ LOW does **not** replace DSD or GSC. It correlates lifecycle facts and work hist
 - Separate worker process
 - Cookie-based single-admin authentication
 
-**Out of scope for iteration 1:** Redis, queues, multi-user roles, AI features, complex analytics.
+**Out of scope for LOW v1:** Redis, queues, multi-user roles, AI features, notifications, finance, search-rank tracking, and duplicate uptime monitoring (availability comes from DSD).
 
 ## 5. Domain model
 
@@ -207,31 +207,39 @@ Separate Node process (`npm run worker:start` / Compose service `worker`):
 - Disable with `WORKER_ENABLED=false` (clean exit). No Redis/queue. Worker does not run migrations.
 - Limits: live M2M when env points at prod endpoints; lifecycle backlog drains over days; no token/secret logging.
 
-## 9. Iteration 1 scope
+## 9. LOW v1 scope (complete)
 
 1. App skeleton + Docker Compose
 2. Prisma schema
 3. Single-admin auth
-4. Website CRUD
+4. Website CRUD + soft archive
 5. Domain normalization + tests
-6. Websites table UI
-7. Website detail page
-8. Manual event creation
+6. Websites table UI + bulk operations
+7. Website detail / complete profile
+8. Manual event creation + filtered journal
 9. Event timeline
-10. Key dates + manual overrides
+10. Key dates + manual overrides (effective dates)
 11. Manual DSD read-only sync
 12. Manual GSC read-only properties + lifecycle sync
 13. Unified DSD/GSC sync worker (JobLock + heartbeat + UI status)
-14. README + `.env.example`
+14. Attention dashboard
+15. Website tasks and planning
+16. Portfolio lifecycle reports (`/reports` + CSV)
+17. GHCR production deployment
+18. README + `.env.example`
 
-## 10. Explicit non-goals (current)
+## 10. Explicit non-goals (LOW v1)
 
 - Redis / external queues
 - Multi-admin RBAC
 - AI assistants
-- Analytics dashboards
+- Notifications (email, Telegram, push, alert delivery)
+- Finance module / financial reports
+- Search ranking / position / SERP tracking
+- Extra uptime probes — site availability is taken from DSD; LOW does not duplicate DSD monitoring
 - Direct DSD/GSC database access
 - Copying Google OAuth tokens into LOW
+- New integrations or background job types beyond the existing worker
 
 ## 11. File map (iteration 1 target)
 

@@ -68,6 +68,18 @@ export const TASK_PRIORITY_LABELS: Record<TaskPriority, string> = {
   CRITICAL: 'Критический',
 };
 
+export const SYNC_RUN_STATUS_LABELS: Record<string, string> = {
+  RUNNING: 'Выполняется',
+  SUCCESS: 'Успешно',
+  PARTIAL: 'Частично',
+  FAILED: 'Ошибка',
+  SKIPPED: 'Пропущено',
+};
+
+export function labelSyncRunStatus(status: string): string {
+  return SYNC_RUN_STATUS_LABELS[status] ?? status;
+}
+
 /** Manual event types offered in the form (machine keys stay English). */
 export const MANUAL_EVENT_TYPES = [
   { value: 'note', label: 'Заметка', category: 'NOTE' as const },
