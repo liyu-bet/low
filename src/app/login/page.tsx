@@ -10,7 +10,7 @@ export default async function LoginPage({
   const nextPath =
     params.next && params.next.startsWith('/') && !params.next.startsWith('//')
       ? params.next
-      : '/dashboard';
+      : '/websites';
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-ink-950 px-4 py-12">

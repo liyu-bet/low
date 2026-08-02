@@ -1,21 +1,29 @@
-import { notFound } from 'next/navigation';
 import { createManualEventAction } from '@/app/(app)/websites/[id]/events/actions';
 import { EventForm } from '@/components/EventForm';
 import { EventTimeline } from '@/components/EventTimeline';
 import { WebsiteDsdBlock } from '@/components/WebsiteDsdBlock';
 import { WebsiteGscBlock } from '@/components/WebsiteGscBlock';
-import { WebsiteTasksBlock } from '@/components/tasks/WebsiteTasksBlock';
 import { WebsiteAttentionBlock } from '@/components/website-profile/WebsiteAttentionBlock';
 import { WebsiteEventFilters } from '@/components/website-profile/WebsiteEventFilters';
 import { WebsiteEventStatsCards } from '@/components/website-profile/WebsiteEventStats';
 import { WebsiteLifecycle } from '@/components/website-profile/WebsiteLifecycle';
+import { WebsiteNextTasks } from '@/components/website-profile/WebsiteNextTasks';
 import { WebsiteProfileHeader } from '@/components/website-profile/WebsiteProfileHeader';
 import { WebsiteSettingsBlock } from '@/components/website-profile/WebsiteSettingsBlock';
 import { WebsiteStatusOverview } from '@/components/website-profile/WebsiteStatusOverview';
 import {
+  toMilestoneRailItems,
+  WebsiteMilestoneRail,
+} from '@/components/websites/WebsiteMilestoneRail';
+import {
+  toLifeTreeNodeViews,
+  WebsiteLifeTree,
+} from '@/components/websites/WebsiteLifeTree';
+import {
   getWebsiteProfile,
   isWebsiteProfileNotFoundError,
 } from '@/lib/websites/profile';
+import { notFound } from 'next/navigation';
 
 export default async function WebsiteDetailPage({
   params,
@@ -37,62 +45,106 @@ export default async function WebsiteDetailPage({
 
   const { website } = profile;
   const createEvent = createManualEventAction.bind(null, website.id);
+  const archived = Boolean(website.archivedAt || website.status === 'ARCHIVED');
+  const dsdLabel =
+    profile.dsdIntegration && profile.overview.dsdAvailability !== 'Нет связи с DSD'
+      ? 'подключено'
+      : 'нет данных';
+  const gscLabel = profile.overview.gscLinkedCount > 0 ? 'подключено' : 'нет данных';
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
+      {/* A. Header */}
       <WebsiteProfileHeader website={website} openUrl={profile.overview.openUrl} />
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
-        <div className="min-w-0 space-y-6">
-          <WebsiteStatusOverview website={website} overview={profile.overview} />
-          <WebsiteLifecycle website={website} intervals={profile.intervals} />
-
-          <section id="integrations" className="space-y-4">
-            <WebsiteDsdBlock integration={profile.dsdIntegration} />
-            <WebsiteGscBlock
-              integrations={profile.gscIntegrations}
-              gscFirstSeenAt={website.gscFirstSeenAt}
-              firstImpressionAt={website.firstImpressionAt}
-              firstClickAt={website.firstClickAt}
-            />
-          </section>
-
-          <section id="history" className="space-y-4">
-            <div>
-              <h2 className="text-xl font-semibold text-ink-50 sm:text-2xl">Журнал событий</h2>
-              <p className="mt-1 text-sm text-ink-200">
-                Хронология по дате события. Источник каждой записи виден в ленте.
-              </p>
-            </div>
-            <WebsiteEventStatsCards stats={profile.eventStats} />
-            <WebsiteEventFilters
-              websiteId={website.id}
-              query={profile.eventsQuery}
-              total={profile.eventsTotal}
-              pageSize={profile.eventsPageSize}
-            />
-            <EventTimeline events={profile.events} />
-          </section>
-
-          <section id="add-event">
-            <EventForm action={createEvent} />
-          </section>
-
-          <WebsiteSettingsBlock website={website} />
+      {/* B. Life path */}
+      <section className="space-y-2">
+        <h2 className="text-xl font-semibold text-ink-50 sm:text-2xl">Жизненный путь</h2>
+        <div className="rounded-card border border-ink-700 bg-white p-4">
+          <WebsiteMilestoneRail items={toMilestoneRailItems(profile.milestones)} />
+          <p className="mt-3 text-sm text-ink-100">{profile.nextStageLabel}</p>
         </div>
+      </section>
 
-        <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
-          <WebsiteAttentionBlock attention={profile.attention} websiteId={website.id} />
-          <WebsiteTasksBlock
-            websiteId={website.id}
-            domain={website.domain}
-            name={website.name}
-            group={website.group}
-            archived={Boolean(website.archivedAt || website.status === 'ARCHIVED')}
-            data={profile.tasks}
-          />
-        </aside>
-      </div>
+      {/* C. Next tasks */}
+      <WebsiteNextTasks
+        websiteId={website.id}
+        archived={archived}
+        openTasks={profile.tasks.openTasks}
+      />
+
+      {/* D. Life tree */}
+      <WebsiteLifeTree
+        past={toLifeTreeNodeViews(profile.lifeTree.past)}
+        future={toLifeTreeNodeViews(profile.lifeTree.future)}
+      />
+
+      {/* Progressive disclosure */}
+      <details className="rounded-card border border-ink-700 bg-white">
+        <summary className="cursor-pointer px-4 py-3 text-base font-semibold text-ink-50">
+          Дополнительная информация
+        </summary>
+        <div className="space-y-3 border-t border-ink-700 px-4 py-4">
+          <details className="rounded border border-ink-700">
+            <summary className="cursor-pointer px-3 py-2 text-sm font-medium text-ink-50">
+              Интеграции
+              <span className="ml-2 font-normal text-ink-200">
+                DSD: {dsdLabel} · GSC: {gscLabel}
+              </span>
+            </summary>
+            <div id="integrations" className="space-y-4 border-t border-ink-700 p-3">
+              {profile.attention ? (
+                <WebsiteAttentionBlock attention={profile.attention} websiteId={website.id} />
+              ) : null}
+              <WebsiteDsdBlock integration={profile.dsdIntegration} />
+              <WebsiteGscBlock
+                integrations={profile.gscIntegrations}
+                gscFirstSeenAt={website.gscFirstSeenAt}
+                firstImpressionAt={website.firstImpressionAt}
+                firstClickAt={website.firstClickAt}
+              />
+            </div>
+          </details>
+
+          <details className="rounded border border-ink-700">
+            <summary className="cursor-pointer px-3 py-2 text-sm font-medium text-ink-50">
+              Полный журнал
+            </summary>
+            <div id="history" className="space-y-4 border-t border-ink-700 p-3">
+              <WebsiteEventStatsCards stats={profile.eventStats} />
+              <WebsiteEventFilters
+                websiteId={website.id}
+                query={profile.eventsQuery}
+                total={profile.eventsTotal}
+                pageSize={profile.eventsPageSize}
+              />
+              <EventTimeline events={profile.events} />
+              <section id="add-event">
+                <EventForm action={createEvent} />
+              </section>
+            </div>
+          </details>
+
+          <details id="settings" className="rounded border border-ink-700">
+            <summary className="cursor-pointer px-3 py-2 text-sm font-medium text-ink-50">
+              Настройки сайта
+            </summary>
+            <div className="space-y-4 border-t border-ink-700 p-3">
+              <WebsiteSettingsBlock website={website} />
+            </div>
+          </details>
+
+          <details className="rounded border border-ink-700">
+            <summary className="cursor-pointer px-3 py-2 text-sm font-medium text-ink-50">
+              Технические данные
+            </summary>
+            <div className="space-y-4 border-t border-ink-700 p-3">
+              <WebsiteStatusOverview website={website} overview={profile.overview} />
+              <WebsiteLifecycle website={website} intervals={profile.intervals} />
+            </div>
+          </details>
+        </div>
+      </details>
     </div>
   );
 }

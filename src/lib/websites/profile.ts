@@ -25,6 +25,15 @@ import {
   type LifecycleChainItem,
   type LifecycleInterval,
 } from '@/lib/websites/lifecycle';
+import {
+  buildWebsiteLifeTree,
+  type WebsiteLifeNode,
+} from '@/lib/websites/life-tree';
+import {
+  buildWebsiteMilestones,
+  nextMilestoneLabel,
+  type MilestoneItem,
+} from '@/lib/websites/milestones';
 import { WebsiteNotFoundError, getWebsiteById } from '@/lib/websites/service';
 
 export type DsdAvailabilityLabel = 'Работает' | 'Недоступен' | 'Неизвестно' | 'Нет связи с DSD';
@@ -46,6 +55,9 @@ export type WebsiteProfileData = {
   attention: AttentionItem | null;
   lifecycleChain: LifecycleChainItem[];
   intervals: LifecycleInterval[];
+  milestones: MilestoneItem[];
+  nextStageLabel: string;
+  lifeTree: { past: WebsiteLifeNode[]; future: WebsiteLifeNode[] };
   tasks: WebsiteTasksBlockData & {
     overdue: TaskListItem[];
     today: TaskListItem[];
@@ -105,8 +117,17 @@ export async function getWebsiteProfile(
 ): Promise<WebsiteProfileData> {
   const website = await getWebsiteById(websiteId);
 
-  const [tasksBlock, dsdIntegration, gscIntegrations, eventStats, eventPage, latestLifecycle, openTasks] =
-    await Promise.all([
+  const [
+    tasksBlock,
+    dsdIntegration,
+    gscIntegrations,
+    eventStats,
+    eventPage,
+    latestLifecycle,
+    openTasks,
+    lifeTreeTasks,
+    lifeTreeEvents,
+  ] = await Promise.all([
       getWebsiteTasksBlock(websiteId, now),
       prisma.websiteIntegration.findFirst({
         where: { websiteId, system: IntegrationSystem.DSD },
@@ -128,6 +149,32 @@ export async function getWebsiteProfile(
           status: { in: ['TODO', 'IN_PROGRESS'] },
         },
         select: { priority: true, dueAt: true, status: true },
+      }),
+      prisma.websiteTask.findMany({
+        where: { websiteId },
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          status: true,
+          dueAt: true,
+          completedAt: true,
+          createdAt: true,
+        },
+      }),
+      prisma.websiteEvent.findMany({
+        where: { websiteId, source: 'MANUAL' },
+        select: {
+          id: true,
+          eventType: true,
+          category: true,
+          title: true,
+          description: true,
+          source: true,
+          occurredAt: true,
+        },
+        orderBy: { occurredAt: 'asc' },
+        take: 500,
       }),
     ]);
 
@@ -165,6 +212,12 @@ export async function getWebsiteProfile(
 
   const dsd = dsdAvailability(dsdIntegration);
   const openSorted = sortOpenTasks(tasksBlock.openTasks, now);
+  const milestones = buildWebsiteMilestones(website);
+  const lifeTree = buildWebsiteLifeTree({
+    website,
+    tasks: lifeTreeTasks,
+    events: lifeTreeEvents,
+  });
 
   return {
     website,
@@ -181,6 +234,9 @@ export async function getWebsiteProfile(
     attention,
     lifecycleChain: buildLifecycleChain(website),
     intervals: buildLifecycleIntervals(website, now),
+    milestones,
+    nextStageLabel: nextMilestoneLabel(milestones),
+    lifeTree,
     tasks: {
       ...tasksBlock,
       openTasks: openSorted,

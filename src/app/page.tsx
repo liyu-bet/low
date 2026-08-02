@@ -9,7 +9,7 @@ export default async function HomePage() {
   const cookieStore = await cookies();
   const session = await verifySessionToken(cookieStore.get(getSessionCookieName())?.value);
   if (session) {
-    redirect('/dashboard');
+    redirect('/websites');
   }
 
   return (

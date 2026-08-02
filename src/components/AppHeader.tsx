@@ -8,7 +8,7 @@ export function AppHeader({ email }: { email: string }) {
     <header className="sticky top-0 z-40 border-b border-ink-700 bg-white">
       <div className="mx-auto flex h-14 max-w-app items-center gap-4 px-4 sm:h-16 sm:px-6 lg:px-8">
         <Link
-          href="/dashboard"
+          href="/websites"
           className="shrink-0 text-lg font-bold tracking-tight text-ink-50 sm:text-xl"
         >
           {APP_NAME}

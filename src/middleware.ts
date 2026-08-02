@@ -23,7 +23,7 @@ export async function middleware(request: NextRequest) {
 
   if (pathname === '/login' && session) {
     const url = request.nextUrl.clone();
-    url.pathname = '/dashboard';
+    url.pathname = '/websites';
     url.search = '';
     return NextResponse.redirect(url);
   }
