@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useDeferredValue, useMemo, useState } from 'react';
 import type { LifecycleStage, WebsiteStatus } from '@prisma/client';
+import { WebsitesBulkPanel } from '@/components/WebsitesBulkPanel';
 import {
   formatDateRu,
   labelLifecycleStage,
@@ -14,9 +15,23 @@ export type WebsiteTableRow = {
   domain: string;
   normalizedDomain: string;
   name: string | null;
+  primaryUrl: string | null;
   status: WebsiteStatus;
   lifecycleStage: LifecycleStage;
   group: string | null;
+  tags: string[];
+  launchedAt: string | null;
+  launchedAtManual: string | null;
+  firstHealthyAt: string | null;
+  gscFirstSeenAt: string | null;
+  gscAddedAtManual: string | null;
+  firstImpressionAt: string | null;
+  firstImpressionAtManual: string | null;
+  firstClickAt: string | null;
+  firstClickAtManual: string | null;
+  lastWorkAt: string | null;
+  archivedAt: string | null;
+  createdAt: string;
   updatedAt: string;
 };
 
@@ -56,6 +71,7 @@ function matchesQuery(row: WebsiteTableRow, query: string): boolean {
     row.normalizedDomain,
     row.name ?? '',
     row.group ?? '',
+    row.tags.join(' '),
     labelWebsiteStatus(row.status),
     labelLifecycleStage(row.lifecycleStage),
   ]
@@ -80,6 +96,13 @@ export function WebsitesTable({ websites }: { websites: WebsiteTableRow[] }) {
   const deferredQuery = useDeferredValue(query);
   const [sortKey, setSortKey] = useState<SortKey>('updatedAt');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
+  const websitesById = useMemo(() => {
+    const map = new Map<string, WebsiteTableRow>();
+    for (const row of websites) map.set(row.id, row);
+    return map;
+  }, [websites]);
 
   const filteredSorted = useMemo(() => {
     const filtered = websites.filter((row) => matchesQuery(row, deferredQuery));
@@ -93,6 +116,12 @@ export function WebsitesTable({ websites }: { websites: WebsiteTableRow[] }) {
     });
   }, [websites, deferredQuery, sortKey, sortDir]);
 
+  const visibleIds = useMemo(() => filteredSorted.map((row) => row.id), [filteredSorted]);
+  const selectedVisibleCount = selectedIds.filter((id) => visibleIds.includes(id)).length;
+  const allVisibleSelected =
+    visibleIds.length > 0 && selectedVisibleCount === visibleIds.length;
+  const hiddenSelectedCount = selectedIds.filter((id) => !visibleIds.includes(id)).length;
+
   function onSort(key: SortKey) {
     if (sortKey === key) {
       setSortDir((prev) => (prev === 'asc' ? 'desc' : 'asc'));
@@ -100,6 +129,28 @@ export function WebsitesTable({ websites }: { websites: WebsiteTableRow[] }) {
     }
     setSortKey(key);
     setSortDir(key === 'updatedAt' ? 'desc' : 'asc');
+  }
+
+  function toggleOne(id: string) {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((value) => value !== id) : [...prev, id],
+    );
+  }
+
+  function toggleAllVisible() {
+    if (allVisibleSelected) {
+      setSelectedIds((prev) => prev.filter((id) => !visibleIds.includes(id)));
+      return;
+    }
+    setSelectedIds((prev) => [...new Set([...prev, ...visibleIds])]);
+  }
+
+  function clearSelection() {
+    setSelectedIds([]);
+  }
+
+  function pruneHiddenFromSelection() {
+    setSelectedIds((prev) => prev.filter((id) => visibleIds.includes(id)));
   }
 
   if (websites.length === 0) {
@@ -111,7 +162,7 @@ export function WebsitesTable({ websites }: { websites: WebsiteTableRow[] }) {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 pb-28">
       <div className="flex flex-wrap items-center gap-3">
         <label className="sr-only" htmlFor="websites-search">
           Поиск сайтов
@@ -130,6 +181,27 @@ export function WebsitesTable({ websites }: { websites: WebsiteTableRow[] }) {
             ? `${websites.length}`
             : `${filteredSorted.length} из ${websites.length}`}
         </span>
+        {selectedIds.length > 0 ? (
+          <span className="text-sm text-sand-100">Выбрано: {selectedIds.length}</span>
+        ) : null}
+        {selectedIds.length > 0 ? (
+          <button
+            type="button"
+            onClick={clearSelection}
+            className="rounded border border-ink-700 px-2.5 py-1.5 text-sm text-ink-100 hover:border-moss-500"
+          >
+            Снять выделение
+          </button>
+        ) : null}
+        {hiddenSelectedCount > 0 ? (
+          <button
+            type="button"
+            onClick={pruneHiddenFromSelection}
+            className="rounded border border-ink-700 px-2.5 py-1.5 text-sm text-ink-200 hover:border-moss-500"
+          >
+            Убрать скрытые фильтром ({hiddenSelectedCount})
+          </button>
+        ) : null}
       </div>
 
       {filteredSorted.length === 0 ? (
@@ -141,6 +213,18 @@ export function WebsitesTable({ websites }: { websites: WebsiteTableRow[] }) {
           <table className="min-w-full text-left text-sm">
             <thead className="bg-ink-900/80 text-ink-200">
               <tr>
+                <th className="w-10 px-3 py-3">
+                  <label className="inline-flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={allVisibleSelected}
+                      onChange={toggleAllVisible}
+                      aria-label="Выбрать все показанные"
+                      className="h-4 w-4 accent-moss-500"
+                    />
+                    <span className="sr-only">Выбрать все показанные</span>
+                  </label>
+                </th>
                 {COLUMNS.map((column) => (
                   <th key={column.key} className="px-4 py-3 font-medium">
                     <button
@@ -156,32 +240,57 @@ export function WebsitesTable({ websites }: { websites: WebsiteTableRow[] }) {
               </tr>
             </thead>
             <tbody>
-              {filteredSorted.map((site) => (
-                <tr key={site.id} className="border-t border-ink-700/50 hover:bg-ink-900/40">
-                  <td className="px-4 py-3">
-                    <Link
-                      href={`/websites/${site.id}`}
-                      className="font-medium text-sand-100 hover:underline"
-                    >
-                      {site.domain}
-                    </Link>
-                    <div className="text-xs text-ink-200">{site.normalizedDomain}</div>
-                  </td>
-                  <td className="px-4 py-3 text-ink-100">{site.name ?? '—'}</td>
-                  <td className="px-4 py-3 text-ink-100">{labelWebsiteStatus(site.status)}</td>
-                  <td className="px-4 py-3 text-ink-100">
-                    {labelLifecycleStage(site.lifecycleStage)}
-                  </td>
-                  <td className="px-4 py-3 text-ink-100">{site.group ?? '—'}</td>
-                  <td className="px-4 py-3 text-ink-200">
-                    {formatDateRu(new Date(site.updatedAt))}
-                  </td>
-                </tr>
-              ))}
+              {filteredSorted.map((site) => {
+                const selected = selectedIds.includes(site.id);
+                return (
+                  <tr
+                    key={site.id}
+                    className={`border-t border-ink-700/50 hover:bg-ink-900/40 ${
+                      selected ? 'bg-moss-500/10' : ''
+                    }`}
+                  >
+                    <td className="px-3 py-3">
+                      <input
+                        type="checkbox"
+                        checked={selected}
+                        onChange={() => toggleOne(site.id)}
+                        aria-label={`Выбрать ${site.domain}`}
+                        className="h-4 w-4 accent-moss-500"
+                      />
+                    </td>
+                    <td className="px-4 py-3">
+                      <Link
+                        href={`/websites/${site.id}`}
+                        className="font-medium text-sand-100 hover:underline"
+                      >
+                        {site.domain}
+                      </Link>
+                      <div className="text-xs text-ink-200">{site.normalizedDomain}</div>
+                    </td>
+                    <td className="px-4 py-3 text-ink-100">{site.name ?? '—'}</td>
+                    <td className="px-4 py-3 text-ink-100">{labelWebsiteStatus(site.status)}</td>
+                    <td className="px-4 py-3 text-ink-100">
+                      {labelLifecycleStage(site.lifecycleStage)}
+                    </td>
+                    <td className="px-4 py-3 text-ink-100">{site.group ?? '—'}</td>
+                    <td className="px-4 py-3 text-ink-200">
+                      {formatDateRu(new Date(site.updatedAt))}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       )}
+
+      {/* Mobile-friendly card list with checkboxes when table is hard to use — keep table with horizontal scroll as primary */}
+      <WebsitesBulkPanel
+        selectedIds={selectedIds}
+        websitesById={websitesById}
+        onClearSelection={clearSelection}
+        onSuccessClear={clearSelection}
+      />
     </div>
   );
 }
