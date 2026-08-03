@@ -4,7 +4,7 @@ import {
   type WebsiteEvent,
   type WebsiteIntegration,
 } from '@prisma/client';
-import { resolveActorLabel } from '@/lib/auth/actor-label';
+import { resolveDisplayActorLabel } from '@/lib/auth/actor-label';
 import { GSC_LIFECYCLE_SYNC_JOB_TYPE } from '@/lib/constants';
 import { evaluateWebsiteAttention, parseLifecycleErrorPropertyIds } from '@/lib/dashboard/attention';
 import type { AttentionItem } from '@/lib/dashboard/types';
@@ -28,6 +28,7 @@ import {
 } from '@/lib/websites/lifecycle';
 import {
   buildWebsiteLifeTree,
+  limitManualActivity,
   type WebsiteLifeNode,
 } from '@/lib/websites/life-tree';
 import {
@@ -58,7 +59,12 @@ export type WebsiteProfileData = {
   intervals: LifecycleInterval[];
   milestones: MilestoneItem[];
   nextStageLabel: string;
-  lifeTree: { past: WebsiteLifeNode[]; future: WebsiteLifeNode[] };
+  lifeTree: {
+    manual: WebsiteLifeNode[];
+    automatic: WebsiteLifeNode[];
+    manualTotal: number;
+    hasMoreManual: boolean;
+  };
   tasks: WebsiteTasksBlockData & {
     overdue: TaskListItem[];
     today: TaskListItem[];
@@ -152,7 +158,7 @@ export async function getWebsiteProfile(
         select: { priority: true, dueAt: true, status: true },
       }),
       prisma.websiteTask.findMany({
-        where: { websiteId },
+        where: { websiteId, status: 'DONE' },
         select: {
           id: true,
           title: true,
@@ -166,6 +172,8 @@ export async function getWebsiteProfile(
           assignedToUser: { select: { name: true, email: true } },
           completedByUser: { select: { name: true, email: true } },
         },
+        orderBy: [{ completedAt: 'desc' }, { createdAt: 'desc' }],
+        take: 40,
       }),
       prisma.websiteEvent.findMany({
         where: { websiteId, source: 'MANUAL' },
@@ -180,8 +188,8 @@ export async function getWebsiteProfile(
           createdBy: true,
           createdByUser: { select: { name: true, email: true } },
         },
-        orderBy: { occurredAt: 'asc' },
-        take: 500,
+        orderBy: { occurredAt: 'desc' },
+        take: 80,
       }),
     ]);
 
@@ -220,29 +228,24 @@ export async function getWebsiteProfile(
   const dsd = dsdAvailability(dsdIntegration);
   const openSorted = sortOpenTasks(tasksBlock.openTasks, now);
   const milestones = buildWebsiteMilestones(website);
-  const lifeTree = buildWebsiteLifeTree({
+  const activity = buildWebsiteLifeTree({
     website,
     tasks: lifeTreeTasks.map((task) => ({
       ...task,
-      actorLabel:
-        task.status === 'DONE'
-          ? resolveActorLabel({
-              user: task.completedByUser ?? task.createdByUser,
-              legacy: task.createdBy,
-            })
-          : resolveActorLabel({
-              user: task.assignedToUser ?? task.createdByUser,
-              legacy: task.createdBy,
-            }),
+      actorLabel: resolveDisplayActorLabel({
+        user: task.completedByUser ?? task.createdByUser,
+        legacy: task.createdBy,
+      }),
     })),
     events: lifeTreeEvents.map((event) => ({
       ...event,
-      actorLabel: resolveActorLabel({
+      actorLabel: resolveDisplayActorLabel({
         user: event.createdByUser,
         legacy: event.createdBy,
       }),
     })),
   });
+  const manualLimited = limitManualActivity(activity.manual, 15);
 
   return {
     website,
@@ -261,7 +264,12 @@ export async function getWebsiteProfile(
     intervals: buildLifecycleIntervals(website, now),
     milestones,
     nextStageLabel: nextMilestoneLabel(milestones),
-    lifeTree,
+    lifeTree: {
+      manual: manualLimited.items,
+      automatic: activity.automatic,
+      manualTotal: manualLimited.total,
+      hasMoreManual: manualLimited.hasMore,
+    },
     tasks: {
       ...tasksBlock,
       openTasks: openSorted,

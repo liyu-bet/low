@@ -31,6 +31,14 @@ export type WebsiteLifeNode = {
   status?: 'completed' | 'in_progress' | 'planned';
   href?: string;
   actorLabel?: string | null;
+  /** Normalized Russian activity type for UI. */
+  activityLabel?: string;
+  category?: EventCategory | null;
+};
+
+export type WebsiteActivityTimeline = {
+  manual: WebsiteLifeNode[];
+  automatic: WebsiteLifeNode[];
 };
 
 export type LifeTreeTask = {
@@ -96,42 +104,62 @@ function sortByDateAsc(a: WebsiteLifeNode, b: WebsiteLifeNode): number {
   return a.title.localeCompare(b.title, 'ru');
 }
 
-function sortOpenTasks(a: LifeTreeTask, b: LifeTreeTask): number {
-  if (a.status === 'IN_PROGRESS' && b.status !== 'IN_PROGRESS') return -1;
-  if (b.status === 'IN_PROGRESS' && a.status !== 'IN_PROGRESS') return 1;
-  const ad = a.dueAt?.getTime() ?? Number.POSITIVE_INFINITY;
-  const bd = b.dueAt?.getTime() ?? Number.POSITIVE_INFINITY;
-  if (ad !== bd) return ad - bd;
-  return a.createdAt.getTime() - b.createdAt.getTime();
+function sortByDateDesc(a: WebsiteLifeNode, b: WebsiteLifeNode): number {
+  return -sortByDateAsc(a, b);
+}
+
+export function activityLabelForNode(
+  kind: WebsiteLifeNodeKind,
+  category?: EventCategory | null,
+): string {
+  if (kind === 'completed_task' || kind === 'open_task') return 'Задача';
+  if (kind === 'note') return 'Заметка';
+  if (kind === 'milestone') return 'Этап';
+  if (kind === 'work') {
+    switch (category) {
+      case 'TECHNICAL':
+        return 'Техническая работа';
+      case 'SEO':
+        return 'SEO';
+      case 'CONTENT':
+        return 'Контент';
+      default:
+        return 'Работа';
+    }
+  }
+  return 'Запись';
 }
 
 /**
- * Build past + future life-tree nodes from existing website data.
- * Deduplicates milestone facts and completed-task events.
+ * Build activity timeline: user work vs automatic milestones.
+ * Open tasks are omitted — they belong in the Tasks block.
+ * TASK_COMPLETED events are omitted when completed tasks are present.
  */
 export function buildWebsiteLifeTree(input: {
   website: MilestoneWebsite;
   tasks: LifeTreeTask[];
   events: LifeTreeEvent[];
-}): { past: WebsiteLifeNode[]; future: WebsiteLifeNode[] } {
+}): WebsiteActivityTimeline {
   const milestones = buildWebsiteMilestones(input.website);
-  const past: WebsiteLifeNode[] = [];
+  const automatic: WebsiteLifeNode[] = [];
+  const manual: WebsiteLifeNode[] = [];
 
   for (const m of milestones) {
     if (!m.reached || !m.date) continue;
-    past.push({
+    automatic.push({
       id: `milestone:${m.key}`,
       kind: 'milestone',
       date: m.date,
       title: milestoneTitle(m.key),
       source: 'automatic',
       status: 'completed',
+      activityLabel: activityLabelForNode('milestone'),
     });
   }
 
   for (const task of input.tasks) {
     if (task.status !== 'DONE') continue;
-    past.push({
+    manual.push({
       id: `task-done:${task.id}`,
       kind: 'completed_task',
       date: task.completedAt ?? task.createdAt,
@@ -140,6 +168,7 @@ export function buildWebsiteLifeTree(input: {
       source: 'manual',
       status: 'completed',
       actorLabel: task.actorLabel,
+      activityLabel: activityLabelForNode('completed_task'),
     });
   }
 
@@ -147,7 +176,7 @@ export function buildWebsiteLifeTree(input: {
     if (!isMeaningfulManualEvent(event)) continue;
     const kind: WebsiteLifeNodeKind =
       event.category === 'NOTE' || event.eventType === 'note' ? 'note' : 'work';
-    past.push({
+    manual.push({
       id: `event:${event.id}`,
       kind,
       date: event.occurredAt,
@@ -156,26 +185,28 @@ export function buildWebsiteLifeTree(input: {
       source: 'manual',
       status: 'completed',
       actorLabel: event.actorLabel,
+      category: event.category,
+      activityLabel: activityLabelForNode(kind, event.category),
     });
   }
 
-  past.sort(sortByDateAsc);
+  automatic.sort(sortByDateAsc);
+  manual.sort(sortByDateDesc);
 
-  const future: WebsiteLifeNode[] = input.tasks
-    .filter((t) => t.status === 'TODO' || t.status === 'IN_PROGRESS')
-    .sort(sortOpenTasks)
-    .map((task) => ({
-      id: `task-open:${task.id}`,
-      kind: 'open_task' as const,
-      date: task.dueAt,
-      title: task.title,
-      description: task.description,
-      source: 'manual' as const,
-      status: task.status === 'IN_PROGRESS' ? ('in_progress' as const) : ('planned' as const),
-      actorLabel: task.actorLabel,
-    }));
+  return { manual, automatic };
+}
 
-  return { past, future };
+/** Limit newest-first manual history for profile UI. */
+export function limitManualActivity(
+  nodes: WebsiteLifeNode[],
+  limit: number,
+): { items: WebsiteLifeNode[]; total: number; hasMore: boolean } {
+  const total = nodes.length;
+  return {
+    items: nodes.slice(0, Math.max(0, limit)),
+    total,
+    hasMore: total > limit,
+  };
 }
 
 function milestoneTitle(key: string): string {
@@ -206,6 +237,7 @@ export type LifeTreeNodeView = {
   source: 'automatic' | 'manual';
   status?: 'completed' | 'in_progress' | 'planned';
   actorLabel?: string | null;
+  activityLabel?: string;
 };
 
 export function toLifeTreeNodeViews(nodes: WebsiteLifeNode[]): LifeTreeNodeView[] {
@@ -218,5 +250,6 @@ export function toLifeTreeNodeViews(nodes: WebsiteLifeNode[]): LifeTreeNodeView[
     source: n.source,
     status: n.status,
     actorLabel: n.actorLabel,
+    activityLabel: n.activityLabel ?? activityLabelForNode(n.kind, n.category),
   }));
 }

@@ -22,12 +22,12 @@ export function WebsiteNextTasks({
   return (
     <section id="tasks" className="space-y-3">
       <div className="flex flex-wrap items-end justify-between gap-2">
-        <h2 className="text-xl font-semibold text-ink-50 sm:text-2xl">Следующие задачи</h2>
+        <h2 className="text-lg font-semibold text-ink-50 sm:text-xl">Задачи</h2>
         <Link
           href={`/tasks?websiteId=${websiteId}`}
-          className="text-sm text-moss-700 hover:underline"
+          className="text-sm text-moss-700 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-moss-500"
         >
-          Все задачи сайта
+          Все
         </Link>
       </div>
 
@@ -42,7 +42,7 @@ export function WebsiteNextTasks({
       ) : (
         <ul className="space-y-2">
           {visible.map((task) => (
-            <CompactTaskRow key={task.id} item={task} />
+            <CompactTaskRow key={task.id} item={task} dense />
           ))}
         </ul>
       )}
@@ -52,7 +52,7 @@ export function WebsiteNextTasks({
           href={`/tasks?websiteId=${websiteId}&focus=open`}
           className="inline-block text-sm text-ink-200 underline-offset-2 hover:text-ink-50 hover:underline"
         >
-          Все задачи сайта ({openTasks.length})
+          Ещё открытые ({openTasks.length - MAX_VISIBLE})
         </Link>
       ) : null}
     </section>

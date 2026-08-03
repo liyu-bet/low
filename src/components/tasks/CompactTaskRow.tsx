@@ -17,13 +17,15 @@ import { TASK_PRIORITY_LABELS, labelTaskStatus } from '@/lib/ui/labels';
 function PendingButton({
   label,
   className,
+  ariaLabel,
 }: {
   label: string;
   className?: string;
+  ariaLabel?: string;
 }) {
   const { pending } = useFormStatus();
   return (
-    <button type="submit" disabled={pending} className={className}>
+    <button type="submit" disabled={pending} className={className} aria-label={ariaLabel ?? label}>
       {pending ? '…' : label}
     </button>
   );
@@ -32,9 +34,12 @@ function PendingButton({
 export function CompactTaskRow({
   item,
   showWebsite = false,
+  dense = false,
 }: {
   item: TaskListItem;
   showWebsite?: boolean;
+  /** Profile-style: title, assignee, due, in-progress — not full meta dump. */
+  dense?: boolean;
 }) {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -57,6 +62,32 @@ export function CompactTaskRow({
     }
   }, [completeState, cancelState, startState, updateState, router]);
 
+  const metaBits: string[] = [];
+  if (dense) {
+    if (item.assignedToLabel) metaBits.push(item.assignedToLabel);
+    if (item.dueAt) {
+      metaBits.push(item.dueRelative);
+    }
+    if (item.status === 'IN_PROGRESS') metaBits.push('В работе');
+    if (
+      item.createdByLabel &&
+      item.assignedToLabel &&
+      item.createdByLabel !== item.assignedToLabel
+    ) {
+      metaBits.push(`Создал: ${item.createdByLabel}`);
+    }
+  } else {
+    metaBits.push(item.dueRelative);
+    metaBits.push(labelTaskStatus(item.status));
+    metaBits.push(`Создал: ${item.createdByLabel}`);
+    if (item.status === 'DONE' && item.completedByLabel) {
+      metaBits.push(`Выполнил: ${item.completedByLabel}`);
+    }
+    if (item.assignedToLabel && item.status !== 'DONE') {
+      metaBits.push(`Исполнитель: ${item.assignedToLabel}`);
+    }
+  }
+
   return (
     <li className="rounded border border-ink-700 bg-white px-3 py-2.5 sm:px-4">
       <div className="flex flex-wrap items-center gap-2 sm:gap-3">
@@ -70,33 +101,25 @@ export function CompactTaskRow({
         ) : null}
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium text-ink-50">{item.title}</p>
-          <p className="mt-0.5 text-xs text-ink-200">
-            <span className={item.dueBucket === 'overdue' ? 'text-red-700' : ''}>
-              {item.dueRelative}
-            </span>
-            <span className="mx-1.5 text-ink-700">·</span>
-            {labelTaskStatus(item.status)}
-            <span className="mx-1.5 text-ink-700">·</span>
-            Создал: {item.createdByLabel}
-            {item.status === 'DONE' && item.completedByLabel ? (
-              <>
-                <span className="mx-1.5 text-ink-700">·</span>
-                Выполнил: {item.completedByLabel}
-              </>
-            ) : null}
-            {item.assignedToLabel && item.status !== 'DONE' ? (
-              <>
-                <span className="mx-1.5 text-ink-700">·</span>
-                Исполнитель: {item.assignedToLabel}
-              </>
-            ) : null}
-          </p>
+          {metaBits.length > 0 ? (
+            <p className="mt-0.5 text-xs text-ink-200">
+              {metaBits.map((bit, index) => (
+                <span key={`${bit}-${index}`}>
+                  {index > 0 ? <span className="mx-1.5 text-ink-700">·</span> : null}
+                  <span className={bit === item.dueRelative && item.dueBucket === 'overdue' ? 'text-red-700' : ''}>
+                    {bit}
+                  </span>
+                </span>
+              ))}
+            </p>
+          ) : null}
         </div>
         {open ? (
           <form action={completeAction}>
             <PendingButton
               label="Выполнить"
-              className="rounded bg-moss-500 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-moss-600 disabled:opacity-60"
+              ariaLabel={`Выполнить задачу: ${item.title}`}
+              className="rounded bg-moss-500 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-moss-600 disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-moss-500"
             />
           </form>
         ) : null}
@@ -106,8 +129,11 @@ export function CompactTaskRow({
             open={menuOpen}
             onToggle={(e) => setMenuOpen((e.target as HTMLDetailsElement).open)}
           >
-            <summary className="cursor-pointer list-none rounded border border-ink-700 px-2 py-1 text-ink-200 marker:content-none [&::-webkit-details-marker]:hidden">
-              ⋯
+            <summary
+              aria-label="Дополнительные действия"
+              className="cursor-pointer list-none rounded border border-ink-700 px-2 py-1 text-ink-200 marker:content-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-moss-500 [&::-webkit-details-marker]:hidden"
+            >
+              •••
             </summary>
             <div className="absolute right-0 z-20 mt-1 w-56 space-y-2 rounded-lg border border-ink-700 bg-white p-2 shadow-card">
               {item.status === 'TODO' ? (

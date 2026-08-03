@@ -15,8 +15,8 @@ function AddButton({ compact }: { compact?: boolean }) {
       disabled={pending}
       className={
         compact
-          ? 'shrink-0 rounded bg-moss-500 px-3 py-2 text-sm font-semibold text-white hover:bg-moss-600 disabled:opacity-60'
-          : 'shrink-0 rounded bg-moss-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-moss-600 disabled:opacity-60'
+          ? 'shrink-0 rounded bg-moss-500 px-3 py-2 text-sm font-semibold text-white hover:bg-moss-600 disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-moss-500'
+          : 'shrink-0 rounded bg-moss-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-moss-600 disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-moss-500'
       }
     >
       {pending ? '…' : 'Добавить'}
@@ -25,8 +25,7 @@ function AddButton({ compact }: { compact?: boolean }) {
 }
 
 /**
- * Ultra-simple task create: title required; optional due + advanced fields.
- * Reuses createTaskAction.
+ * Ultra-simple task create: title required; optional due + parameters.
  */
 export function QuickWebsiteTaskForm({
   websiteId,
@@ -47,42 +46,31 @@ export function QuickWebsiteTaskForm({
   const [state, formAction] = useActionState(createTaskAction, {} as TaskActionState);
   const [showDue, setShowDue] = useState(false);
   const [advanced, setAdvanced] = useState(false);
+  const [flashOk, setFlashOk] = useState(false);
 
   useEffect(() => {
     if (autoFocus) titleRef.current?.focus();
   }, [autoFocus]);
 
   useEffect(() => {
-    if (state.ok) {
-      formRef.current?.reset();
-      setShowDue(false);
-      setAdvanced(false);
-      router.refresh();
-    }
+    if (!state.ok) return;
+    formRef.current?.reset();
+    setShowDue(false);
+    setAdvanced(false);
+    setFlashOk(true);
+    router.refresh();
+    const timer = window.setTimeout(() => setFlashOk(false), 2500);
+    return () => window.clearTimeout(timer);
   }, [state, router]);
 
   return (
-    <form
-      ref={formRef}
-      action={formAction}
-      className="space-y-2"
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' && (e.target as HTMLElement).tagName === 'INPUT') {
-          // Allow Enter to submit from title field (default form behaviour).
-        }
-      }}
-    >
+    <form ref={formRef} action={formAction} className="space-y-2">
       <input type="hidden" name="websiteId" value={websiteId} />
       {!advanced ? <input type="hidden" name="priority" value={TaskPriority.MEDIUM} /> : null}
 
       {state.error ? (
-        <p className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p className="text-sm text-red-700" role="alert">
           {state.error}
-        </p>
-      ) : null}
-      {state.ok && state.message ? (
-        <p className="rounded border border-moss-500/40 bg-moss-50 px-3 py-2 text-sm text-moss-700">
-          {state.message}
         </p>
       ) : null}
 
@@ -93,24 +81,28 @@ export function QuickWebsiteTaskForm({
           required
           maxLength={200}
           placeholder="Что нужно сделать?"
-          className="min-w-0 flex-1 rounded border border-ink-700 bg-white px-3 py-2.5 text-sm text-ink-50 placeholder:text-ink-200"
+          className="min-w-0 flex-1 rounded border border-ink-700 bg-white px-3 py-2.5 text-sm text-ink-50 placeholder:text-ink-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-moss-500"
         />
         {!showDue ? (
           <button
             type="button"
             onClick={() => setShowDue(true)}
-            className="shrink-0 rounded border border-ink-700 px-3 py-2 text-sm text-ink-200 hover:border-moss-500 hover:text-ink-50"
+            aria-label="Указать дату"
+            className="shrink-0 rounded border border-ink-700 px-2.5 py-2 text-sm text-ink-200 hover:border-moss-500 hover:text-ink-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-moss-500"
           >
-            Без срока
+            Дата
           </button>
         ) : (
           <input
             type="date"
             name="dueAt"
-            className="shrink-0 rounded border border-ink-700 bg-white px-2 py-2 text-sm text-ink-50"
+            className="shrink-0 rounded border border-ink-700 bg-white px-2 py-2 text-sm text-ink-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-moss-500"
           />
         )}
         <AddButton compact={compact} />
+        <span className="flex min-w-[4.5rem] items-center text-sm text-moss-700" aria-live="polite">
+          {flashOk ? 'Добавлено' : ''}
+        </span>
         {onCancel ? (
           <button
             type="button"
@@ -127,9 +119,9 @@ export function QuickWebsiteTaskForm({
           <button
             type="button"
             onClick={() => setAdvanced((v) => !v)}
-            className="text-sm text-ink-200 underline-offset-2 hover:text-ink-50 hover:underline"
+            className="text-sm text-ink-200 underline-offset-2 hover:text-ink-50 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-moss-500"
           >
-            {advanced ? 'Скрыть дополнительно' : 'Дополнительно'}
+            {advanced ? 'Скрыть параметры' : 'Параметры'}
           </button>
           {advanced ? (
             <div className="mt-2 grid gap-2 sm:grid-cols-2">

@@ -1,76 +1,68 @@
+'use client';
+
+import { useMemo, useState } from 'react';
+import { getInitials } from '@/lib/auth/actor-label';
 import { formatDateRu } from '@/lib/ui/labels';
 import { cn } from '@/lib/ui/cn';
 import type { LifeTreeNodeView } from '@/lib/websites/life-tree';
 
 export type { LifeTreeNodeView };
 
-function kindLabel(kind: LifeTreeNodeView['kind']): string {
-  switch (kind) {
-    case 'milestone':
-      return 'Автоматически';
-    case 'work':
-      return 'Работа';
-    case 'completed_task':
-    case 'open_task':
-      return 'Задача';
-    case 'note':
-      return 'Заметка';
-    default:
-      return '';
-  }
+const INITIAL_VISIBLE = 10;
+
+function ManualCard({ node }: { node: LifeTreeNodeView }) {
+  const actor = node.actorLabel?.trim() || 'Неизвестный пользователь';
+  const initials = getInitials(actor);
+  const activity = node.activityLabel || 'Запись';
+  const dateLabel = node.date ? formatDateRu(new Date(node.date)) : '';
+
+  return (
+    <li className="rounded-md border border-ink-800/80 bg-moss-50/40 pl-0 shadow-none">
+      <div className="flex gap-3 rounded-md border-l-[3px] border-l-moss-500 px-3 py-2.5">
+        <span
+          aria-hidden="true"
+          className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-ink-900 text-[11px] font-semibold text-ink-50"
+        >
+          {initials}
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+            <p className="text-xs text-ink-200">
+              <span className="font-medium text-ink-100">{actor}</span>
+              <span className="mx-1 text-ink-700">·</span>
+              {activity}
+            </p>
+            {dateLabel ? (
+              <time className="shrink-0 text-xs text-ink-200" dateTime={node.date ?? undefined}>
+                {dateLabel}
+              </time>
+            ) : null}
+          </div>
+          <p className="mt-0.5 text-sm font-medium text-ink-50">{node.title}</p>
+          {node.description ? (
+            <p className="mt-1 line-clamp-3 text-sm text-ink-200">{node.description}</p>
+          ) : null}
+        </div>
+      </div>
+    </li>
+  );
 }
 
-function nodeDotClass(node: LifeTreeNodeView): string {
-  if (node.kind === 'milestone') return 'border-teal-600 bg-teal-500';
-  if (node.kind === 'completed_task') return 'border-moss-600 bg-moss-500';
-  if (node.kind === 'work') return 'border-sky-600 bg-sky-500';
-  if (node.kind === 'note') return 'border-ink-500 bg-ink-400';
-  if (node.status === 'in_progress') return 'border-amber-600 bg-amber-400';
-  return 'border-ink-500 bg-white';
-}
-
-function NodeList({
-  nodes,
-  muted,
-}: {
-  nodes: LifeTreeNodeView[];
-  muted?: boolean;
-}) {
+function AutomaticList({ nodes }: { nodes: LifeTreeNodeView[] }) {
   if (nodes.length === 0) {
-    return <p className="py-2 pl-8 text-sm text-ink-200">Записей нет</p>;
+    return <p className="py-1 text-sm text-ink-200">Автоматических событий нет</p>;
   }
 
   return (
-    <ul className="space-y-0">
+    <ul className="space-y-1.5">
       {nodes.map((node) => (
-        <li key={node.id} className="relative flex gap-3 pb-5 last:pb-0">
-          <div className="absolute bottom-0 left-[0.4375rem] top-2 w-px bg-ink-700" />
-          <span
-            className={cn(
-              'relative z-[1] mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full border-2',
-              nodeDotClass(node),
-            )}
-          />
-          <div className={cn('min-w-0 flex-1', muted && 'opacity-90')}>
-            <p className="text-xs text-ink-200">
-              {node.date ? formatDateRu(new Date(node.date)) : 'Без срока'}
-              <span className="mx-1.5 text-ink-700">·</span>
-              {node.actorLabel ? (
-                <>
-                  {node.actorLabel}
-                  <span className="mx-1.5 text-ink-700">·</span>
-                </>
-              ) : null}
-              {kindLabel(node.kind)}
-              {node.status === 'in_progress' ? (
-                <span className="ml-1.5 text-amber-800">в работе</span>
-              ) : null}
-            </p>
-            <p className="mt-0.5 text-sm font-medium text-ink-50">{node.title}</p>
-            {node.description ? (
-              <p className="mt-1 line-clamp-2 text-sm text-ink-200">{node.description}</p>
-            ) : null}
-          </div>
+        <li key={node.id} className="flex items-start gap-2 text-sm text-ink-200">
+          <span aria-hidden="true" className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-ink-500" />
+          <p className="min-w-0">
+            {node.date ? formatDateRu(new Date(node.date)) : '—'}
+            <span className="mx-1.5 text-ink-700">·</span>
+            {node.title}
+          </p>
         </li>
       ))}
     </ul>
@@ -78,32 +70,64 @@ function NodeList({
 }
 
 export function WebsiteLifeTree({
-  past,
-  future,
+  manual,
+  automatic,
 }: {
-  past: LifeTreeNodeView[];
-  future: LifeTreeNodeView[];
+  manual: LifeTreeNodeView[];
+  automatic: LifeTreeNodeView[];
+  /** @deprecated ignored — open tasks live in Tasks block */
+  future?: LifeTreeNodeView[];
+  past?: LifeTreeNodeView[];
 }) {
+  const [showAutomatic, setShowAutomatic] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+
+  const visibleManual = useMemo(() => {
+    if (expanded || manual.length <= INITIAL_VISIBLE) return manual;
+    return manual.slice(0, INITIAL_VISIBLE);
+  }, [expanded, manual]);
+
+  const canExpand = manual.length > INITIAL_VISIBLE && !expanded;
+
   return (
-    <section id="life-tree" className="space-y-4">
-      <div>
-        <h2 className="text-xl font-semibold text-ink-50 sm:text-2xl">Дерево жизни проекта</h2>
-        <p className="mt-1 text-sm text-ink-200">Ключевые этапы, работы и задачи по времени.</p>
-      </div>
+    <section id="life-tree" className="space-y-3">
+      <h2 className="text-lg font-semibold text-ink-50 sm:text-xl">История</h2>
 
-      <div className="rounded-card border border-ink-700 bg-white p-4 sm:p-5">
-        <NodeList nodes={past} />
+      {manual.length === 0 ? (
+        <p className="text-sm text-ink-200">Пока нет работ и выполненных задач.</p>
+      ) : (
+        <ul className="space-y-2.5">
+          {visibleManual.map((node) => (
+            <ManualCard key={node.id} node={node} />
+          ))}
+        </ul>
+      )}
 
-        <div className="relative my-4 flex items-center gap-3">
-          <span className="relative z-[1] h-3 w-3 shrink-0 rounded-full border-2 border-ink-50 bg-ink-50" />
-          <div className="h-px flex-1 bg-ink-700" />
-          <span className="shrink-0 text-xs font-semibold uppercase tracking-wide text-ink-100">
-            Сегодня
-          </span>
-          <div className="h-px flex-1 bg-ink-700" />
-        </div>
+      {canExpand ? (
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          className="text-sm text-moss-700 underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-moss-500"
+        >
+          Показать ещё
+        </button>
+      ) : null}
 
-        <NodeList nodes={future} muted />
+      <div className="pt-1">
+        <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-ink-200">
+          <input
+            type="checkbox"
+            checked={showAutomatic}
+            onChange={(e) => setShowAutomatic(e.target.checked)}
+            className="rounded border-ink-600 text-moss-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-moss-500"
+          />
+          Показать автоматические события
+        </label>
+        {showAutomatic ? (
+          <div className={cn('mt-2', automatic.length > 0 && 'pl-0.5')}>
+            <AutomaticList nodes={automatic} />
+          </div>
+        ) : null}
       </div>
     </section>
   );
