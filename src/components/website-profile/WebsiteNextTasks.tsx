@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { CompactTaskRow } from '@/components/tasks/CompactTaskRow';
 import { QuickWebsiteTaskForm } from '@/components/tasks/QuickWebsiteTaskForm';
+import { Section, SectionHeader } from '@/components/ui/layout';
 import type { TaskListItem } from '@/lib/tasks/types';
 
 const MAX_VISIBLE = 5;
@@ -20,16 +21,18 @@ export function WebsiteNextTasks({
   const hasMore = openTasks.length > MAX_VISIBLE;
 
   return (
-    <section id="tasks" className="space-y-3">
-      <div className="flex flex-wrap items-end justify-between gap-2">
-        <h2 className="text-lg font-semibold text-ink-50 sm:text-xl">Задачи</h2>
-        <Link
-          href={`/tasks?websiteId=${websiteId}`}
-          className="text-sm text-moss-700 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-moss-500"
-        >
-          Все
-        </Link>
-      </div>
+    <Section id="tasks">
+      <SectionHeader
+        title="Задачи"
+        action={
+          <Link
+            href={`/tasks?websiteId=${websiteId}`}
+            className="text-sm text-moss-700 hover:underline"
+          >
+            Все
+          </Link>
+        }
+      />
 
       {!archived ? (
         <QuickWebsiteTaskForm websiteId={websiteId} assignees={assignees} />
@@ -55,6 +58,6 @@ export function WebsiteNextTasks({
           Ещё открытые ({openTasks.length - MAX_VISIBLE})
         </Link>
       ) : null}
-    </section>
+    </Section>
   );
 }

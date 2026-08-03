@@ -14,7 +14,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           role: session.role,
         }}
       />
-      <main className="mx-auto max-w-app px-4 py-6 sm:px-6 sm:py-8 lg:px-8">{children}</main>
+      <main className="mx-auto max-w-app px-4 py-5 sm:px-6 sm:py-6 lg:px-7 lg:py-8">{children}</main>
     </div>
   );
 }

@@ -15,6 +15,7 @@
     "db:deploy": "prisma migrate deploy",
     "postinstall": "prisma generate",
     "test": "tsx --test src/lib/**/*.test.ts",
+    "test:e2e": "playwright test",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
@@ -28,6 +29,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@playwright/test": "^1.54.2",
     "@types/node": "^20.17.57",
     "@types/react": "^19.1.10",
     "@types/react-dom": "^19.1.7",

@@ -15,7 +15,7 @@ export function DurationSummary({ rows }: { rows: DurationMetricRow[] }) {
           Календарные дни. Главный показатель — медиана. Отрицательные интервалы не входят в расчёт.
         </p>
       </div>
-      <div className="overflow-x-auto">
+      <div className="data-scroll">
         <table className="min-w-full text-left text-sm">
           <thead className="text-ink-300">
             <tr className="border-b border-ink-800">

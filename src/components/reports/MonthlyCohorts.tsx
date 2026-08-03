@@ -14,7 +14,7 @@ export function MonthlyCohorts({ rows }: { rows: MonthlyCohortRow[] }) {
           Последние 12 месяцев. Каждая метрика — по своей эффективной дате.
         </p>
       </div>
-      <div className="overflow-x-auto">
+      <div className="data-scroll">
         <table className="min-w-full text-left text-sm">
           <thead className="text-ink-300">
             <tr className="border-b border-ink-800">

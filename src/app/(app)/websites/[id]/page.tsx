@@ -13,6 +13,8 @@ import { WebsiteSettingsBlock } from '@/components/website-profile/WebsiteSettin
 import { WebsiteStatusOverview } from '@/components/website-profile/WebsiteStatusOverview';
 import { WebsiteMilestoneRail } from '@/components/websites/WebsiteMilestoneRail';
 import { WebsiteLifeTree } from '@/components/websites/WebsiteLifeTree';
+import { Disclosure } from '@/components/ui/Disclosure';
+import { Section, SectionHeader } from '@/components/ui/layout';
 import { toMilestoneRailItems, computeMilestoneProgress } from '@/lib/websites/milestones';
 import { toLifeTreeNodeViews } from '@/lib/websites/life-tree';
 import {
@@ -61,26 +63,21 @@ export default async function WebsiteDetailPage({
         showSettings={isAdmin}
       />
 
-      <section className="space-y-2">
-        <h2 className="text-lg font-semibold text-ink-50 sm:text-xl">Этапы</h2>
-        <div className="py-1">
-          <WebsiteMilestoneRail items={toMilestoneRailItems(profile.milestones)} />
-          <p className="mt-2 text-sm text-ink-100">
-            {profile.nextStageLabel}
-            {showClarify ? (
-              <>
-                {' '}
-                <a
-                  href="#settings"
-                  className="text-moss-700 underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-moss-500"
-                >
-                  Уточнить
-                </a>
-              </>
-            ) : null}
-          </p>
-        </div>
-      </section>
+      <Section>
+        <SectionHeader title="Этапы" />
+        <WebsiteMilestoneRail items={toMilestoneRailItems(profile.milestones)} />
+        <p className="text-sm text-ink-100">
+          {profile.nextStageLabel}
+          {showClarify ? (
+            <>
+              {' '}
+              <a href="#settings" className="text-moss-700 underline-offset-2 hover:underline">
+                Уточнить
+              </a>
+            </>
+          ) : null}
+        </p>
+      </Section>
 
       <WebsiteNextTasks
         websiteId={website.id}
@@ -94,15 +91,12 @@ export default async function WebsiteDetailPage({
         automatic={toLifeTreeNodeViews(profile.lifeTree.automatic)}
       />
 
-      <div className="space-y-0 border-t border-ink-800 pt-2">
-        <details className="border-b border-ink-800">
-          <summary className="cursor-pointer py-2.5 text-sm font-medium text-ink-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-moss-500">
-            Интеграции
-            <span className="ml-2 font-normal text-ink-200">
-              DSD {dsdOk ? 'подключено' : 'нет данных'} · GSC {gscOk ? 'подключено' : 'нет данных'}
-            </span>
-          </summary>
-          <div id="integrations" className="space-y-4 pb-4 pt-1">
+      <div className="border-t border-ink-800 pt-1">
+        <Disclosure
+          title="Интеграции"
+          summaryExtra={`DSD ${dsdOk ? 'подключено' : 'нет данных'} · GSC ${gscOk ? 'подключено' : 'нет данных'}`}
+        >
+          <div id="integrations" className="space-y-4">
             {profile.attention ? (
               <WebsiteAttentionBlock attention={profile.attention} websiteId={website.id} />
             ) : null}
@@ -114,13 +108,10 @@ export default async function WebsiteDetailPage({
               firstClickAt={website.firstClickAt}
             />
           </div>
-        </details>
+        </Disclosure>
 
-        <details className="border-b border-ink-800">
-          <summary className="cursor-pointer py-2.5 text-sm font-medium text-ink-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-moss-500">
-            Полный журнал
-          </summary>
-          <div id="history" className="space-y-4 pb-4 pt-1">
+        <Disclosure title="Полный журнал">
+          <div id="history" className="space-y-4">
             <WebsiteEventStatsCards stats={profile.eventStats} />
             <WebsiteEventFilters
               websiteId={website.id}
@@ -133,28 +124,18 @@ export default async function WebsiteDetailPage({
               <EventForm action={createEvent} />
             </section>
           </div>
-        </details>
+        </Disclosure>
 
         {isAdmin ? (
-          <details id="settings" className="border-b border-ink-800">
-            <summary className="cursor-pointer py-2.5 text-sm font-medium text-ink-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-moss-500">
-              Настройки
-            </summary>
-            <div className="space-y-4 pb-4 pt-1">
-              <WebsiteSettingsBlock website={website} />
-            </div>
-          </details>
+          <Disclosure id="settings" title="Настройки">
+            <WebsiteSettingsBlock website={website} />
+          </Disclosure>
         ) : null}
 
-        <details className="border-b border-ink-800">
-          <summary className="cursor-pointer py-2.5 text-sm font-medium text-ink-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-moss-500">
-            Технические данные
-          </summary>
-          <div className="space-y-4 pb-4 pt-1">
-            <WebsiteStatusOverview website={website} overview={profile.overview} />
-            <WebsiteLifecycle website={website} intervals={profile.intervals} />
-          </div>
-        </details>
+        <Disclosure title="Технические данные">
+          <WebsiteStatusOverview website={website} overview={profile.overview} />
+          <WebsiteLifecycle website={website} intervals={profile.intervals} />
+        </Disclosure>
       </div>
     </div>
   );

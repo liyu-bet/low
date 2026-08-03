@@ -42,7 +42,7 @@ module.exports = {
         display: ['var(--font-sans)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
       },
       maxWidth: {
-        app: '80rem',
+        app: '72rem',
       },
       boxShadow: {
         card: '0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06)',

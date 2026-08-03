@@ -11,12 +11,10 @@ import { useFormStatus } from 'react-dom';
 function ArchiveSubmit() {
   const { pending } = useFormStatus();
   return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="rounded border border-red-500/50 px-3 py-2 text-sm text-red-700 hover:bg-red-500/10 disabled:opacity-60"
-    >
-      {pending ? 'Архивация…' : 'Архивировать сайт'}
+    <button type="submit" disabled={pending} className="btn-danger">
+      <span className="inline-block min-w-[9rem] text-center">
+        {pending ? '…' : 'Архивировать сайт'}
+      </span>
     </button>
   );
 }
@@ -26,25 +24,29 @@ export function WebsiteSettingsBlock({ website }: { website: Website }) {
   const action = updateWebsiteAction.bind(null, website.id);
 
   return (
-    <section id="settings" className="space-y-4">
-      <details className="rounded border border-ink-700 bg-white p-4">
-        <summary className="cursor-pointer text-2xl font-semibold text-sand-100">
-          Настройки сайта
-        </summary>
-        <div className="mt-4 space-y-3">
-          <WebsiteForm action={action} website={website} submitLabel="Сохранить настройки" />
-          <p className="text-sm text-ink-200">
-            Полная страница редактирования:{' '}
-            <Link href={`/websites/${website.id}/edit`} className="text-moss-600">
-              открыть
-            </Link>
-          </p>
-        </div>
-      </details>
+    <div className="space-y-4">
+      <WebsiteForm action={action} website={website} submitLabel="Сохранить настройки" />
+      <p className="text-sm text-ink-200">
+        Полная страница редактирования:{' '}
+        <Link href={`/websites/${website.id}/edit`} className="text-moss-600">
+          открыть
+        </Link>
+      </p>
 
       {!website.archivedAt ? (
-        <details className="rounded border border-red-500/30 bg-white p-4">
-          <summary className="cursor-pointer text-sm text-red-700">Опасная зона</summary>
+        <details className="border-t border-ink-800 pt-2">
+          <summary className="disclosure-summary text-red-700">
+            <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="disclosure-chevron">
+              <path
+                d="M6 3.5 10.5 8 6 12.5"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+            Опасная зона
+          </summary>
           <div className="mt-3 space-y-3">
             <p className="text-sm text-ink-200">
               Архивирование скрывает сайт из основного списка. Связанные события, задачи и
@@ -56,7 +58,7 @@ export function WebsiteSettingsBlock({ website }: { website: Website }) {
                 <input
                   value={confirm}
                   onChange={(e) => setConfirm(e.target.value)}
-                  className="mt-1 w-full rounded border border-ink-700 bg-white px-3 py-2 text-ink-50"
+                  className="field-input mt-1"
                   autoComplete="off"
                 />
               </label>
@@ -67,6 +69,6 @@ export function WebsiteSettingsBlock({ website }: { website: Website }) {
       ) : (
         <p className="text-sm text-ink-200">Сайт уже в архиве.</p>
       )}
-    </section>
+    </div>
   );
 }

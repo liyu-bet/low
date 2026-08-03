@@ -4,29 +4,23 @@ import { useActionState, useEffect, useRef, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { createTaskAction, type TaskActionState } from '@/app/(app)/tasks/actions';
+import { InlineNotice } from '@/components/ui/layout';
+import { preserveScroll } from '@/components/ui/ActionMenu';
 import { TASK_PRIORITY_LABELS } from '@/lib/ui/labels';
 import { TaskPriority } from '@prisma/client';
+import { cn } from '@/lib/ui/cn';
 
-function AddButton({ compact }: { compact?: boolean }) {
+function AddButton() {
   const { pending } = useFormStatus();
   return (
-    <button
-      type="submit"
-      disabled={pending}
-      className={
-        compact
-          ? 'shrink-0 rounded bg-moss-500 px-3 py-2 text-sm font-semibold text-white hover:bg-moss-600 disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-moss-500'
-          : 'shrink-0 rounded bg-moss-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-moss-600 disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-moss-500'
-      }
-    >
-      {pending ? '…' : 'Добавить'}
+    <button type="submit" disabled={pending} className="btn-primary shrink-0">
+      <span className="inline-block min-w-[4.75rem] text-center">
+        {pending ? '…' : 'Добавить'}
+      </span>
     </button>
   );
 }
 
-/**
- * Ultra-simple task create: title required; optional due + parameters.
- */
 export function QuickWebsiteTaskForm({
   websiteId,
   compact = false,
@@ -47,6 +41,7 @@ export function QuickWebsiteTaskForm({
   const [showDue, setShowDue] = useState(false);
   const [advanced, setAdvanced] = useState(false);
   const [flashOk, setFlashOk] = useState(false);
+  const lastOkRef = useRef(0);
 
   useEffect(() => {
     if (autoFocus) titleRef.current?.focus();
@@ -54,11 +49,17 @@ export function QuickWebsiteTaskForm({
 
   useEffect(() => {
     if (!state.ok) return;
+    // Avoid re-triggering for the same successful state object identity churn
+    const stamp = Date.now();
+    if (stamp - lastOkRef.current < 300) return;
+    lastOkRef.current = stamp;
+
     formRef.current?.reset();
     setShowDue(false);
     setAdvanced(false);
     setFlashOk(true);
-    router.refresh();
+    preserveScroll(() => router.refresh());
+    titleRef.current?.focus();
     const timer = window.setTimeout(() => setFlashOk(false), 2500);
     return () => window.clearTimeout(timer);
   }, [state, router]);
@@ -69,49 +70,43 @@ export function QuickWebsiteTaskForm({
       {!advanced ? <input type="hidden" name="priority" value={TaskPriority.MEDIUM} /> : null}
 
       {state.error ? (
-        <p className="text-sm text-red-700" role="alert">
+        <p className="inline-notice-error" role="alert">
           {state.error}
         </p>
       ) : null}
 
-      <div className="flex flex-wrap items-stretch gap-2">
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
         <input
           ref={titleRef}
           name="title"
           required
           maxLength={200}
           placeholder="Что нужно сделать?"
-          className="min-w-0 flex-1 rounded border border-ink-700 bg-white px-3 py-2.5 text-sm text-ink-50 placeholder:text-ink-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-moss-500"
+          className="field-input min-w-0 flex-1"
         />
-        {!showDue ? (
-          <button
-            type="button"
-            onClick={() => setShowDue(true)}
-            aria-label="Указать дату"
-            className="shrink-0 rounded border border-ink-700 px-2.5 py-2 text-sm text-ink-200 hover:border-moss-500 hover:text-ink-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-moss-500"
-          >
-            Дата
-          </button>
-        ) : (
-          <input
-            type="date"
-            name="dueAt"
-            className="shrink-0 rounded border border-ink-700 bg-white px-2 py-2 text-sm text-ink-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-moss-500"
-          />
-        )}
-        <AddButton compact={compact} />
-        <span className="flex min-w-[4.5rem] items-center text-sm text-moss-700" aria-live="polite">
-          {flashOk ? 'Добавлено' : ''}
-        </span>
-        {onCancel ? (
-          <button
-            type="button"
-            onClick={onCancel}
-            className="shrink-0 rounded border border-ink-700 px-3 py-2 text-sm text-ink-200 hover:text-ink-50"
-          >
-            Отмена
-          </button>
-        ) : null}
+        <div className="flex flex-wrap items-center gap-2">
+          {!showDue ? (
+            <button
+              type="button"
+              onClick={() => setShowDue(true)}
+              aria-label="Указать дату"
+              className="btn-secondary shrink-0"
+            >
+              Дата
+            </button>
+          ) : (
+            <input type="date" name="dueAt" className="field-input w-auto shrink-0" />
+          )}
+          <AddButton />
+          <span className="inline-flex min-w-[4.75rem] items-center">
+            {flashOk ? <InlineNotice>Добавлено</InlineNotice> : null}
+          </span>
+          {onCancel ? (
+            <button type="button" onClick={onCancel} className="btn-ghost">
+              Отмена
+            </button>
+          ) : null}
+        </div>
       </div>
 
       {!compact ? (
@@ -119,26 +114,22 @@ export function QuickWebsiteTaskForm({
           <button
             type="button"
             onClick={() => setAdvanced((v) => !v)}
-            className="text-sm text-ink-200 underline-offset-2 hover:text-ink-50 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-moss-500"
+            className="text-sm text-ink-200 underline-offset-2 hover:text-ink-50 hover:underline"
           >
             {advanced ? 'Скрыть параметры' : 'Параметры'}
           </button>
           {advanced ? (
-            <div className="mt-2 grid gap-2 sm:grid-cols-2">
+            <div className={cn('mt-2 grid gap-2 sm:grid-cols-2')}>
               <label className="block text-sm text-ink-200 sm:col-span-2">
                 Описание
-                <textarea
-                  name="description"
-                  rows={2}
-                  className="mt-1 w-full rounded border border-ink-700 bg-white px-3 py-2 text-ink-50"
-                />
+                <textarea name="description" rows={2} className="field-input mt-1" />
               </label>
               <label className="block text-sm text-ink-200">
                 Приоритет
                 <select
                   name="priority"
                   defaultValue={TaskPriority.MEDIUM}
-                  className="mt-1 w-full rounded border border-ink-700 bg-white px-3 py-2 text-ink-50"
+                  className="field-input mt-1"
                 >
                   {Object.entries(TASK_PRIORITY_LABELS).map(([value, label]) => (
                     <option key={value} value={value}>
@@ -150,11 +141,7 @@ export function QuickWebsiteTaskForm({
               {!showDue ? (
                 <label className="block text-sm text-ink-200">
                   Срок
-                  <input
-                    type="date"
-                    name="dueAt"
-                    className="mt-1 w-full rounded border border-ink-700 bg-white px-3 py-2 text-ink-50"
-                  />
+                  <input type="date" name="dueAt" className="field-input mt-1" />
                 </label>
               ) : null}
               <label className="block text-sm text-ink-200 sm:col-span-2">
@@ -162,7 +149,7 @@ export function QuickWebsiteTaskForm({
                 <select
                   name="assignedToUserId"
                   defaultValue="__self__"
-                  className="mt-1 w-full rounded border border-ink-700 bg-white px-3 py-2 text-ink-50"
+                  className="field-input mt-1"
                 >
                   <option value="__self__">Я</option>
                   <option value="__none__">Не назначать</option>

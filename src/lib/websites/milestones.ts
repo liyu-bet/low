@@ -144,7 +144,7 @@ function missingDataLabel(key: MilestoneKey): string {
     case 'created':
       return 'Не указана дата добавления';
     default:
-      return 'Нужно уточнить дату этапа';
+      return 'Дата не указана';
   }
 }
 

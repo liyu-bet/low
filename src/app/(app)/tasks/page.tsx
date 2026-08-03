@@ -100,7 +100,7 @@ export default async function TasksPage({
         defaultWebsiteId={data.filters.websiteId || undefined}
       />
 
-      <div className="flex flex-wrap gap-1 border-b border-ink-700 pb-px">
+      <div className="grid grid-cols-2 gap-1 border-b border-ink-700 pb-px sm:flex sm:flex-wrap">
         {TABS.map((tab) => {
           const href = buildTasksQuery({ ...data.filters, focus: tab.focus, action: '' });
           const active = focus === tab.focus;
@@ -109,9 +109,9 @@ export default async function TasksPage({
               key={tab.focus}
               href={href}
               className={cn(
-                'rounded-t-lg px-3 py-2 text-sm font-medium',
+                'rounded-[10px] px-2.5 py-2 text-center text-sm font-medium sm:rounded-t-lg sm:rounded-b-none sm:text-left',
                 active
-                  ? 'border border-b-white border-ink-700 bg-white text-ink-50'
+                  ? 'border border-ink-700 bg-white text-ink-50 sm:border-b-white'
                   : 'text-ink-200 hover:text-ink-50',
               )}
             >
@@ -122,8 +122,19 @@ export default async function TasksPage({
         })}
       </div>
 
-      <details className="text-sm">
-        <summary className="cursor-pointer text-ink-200 hover:text-ink-50">Фильтры</summary>
+      <details className="group text-sm">
+        <summary className="disclosure-summary border-0 py-1">
+          <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="disclosure-chevron">
+            <path
+              d="M6 3.5 10.5 8 6 12.5"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+          Фильтры
+        </summary>
         <div className="mt-3">
           <TaskFiltersBar
             filters={data.filters}

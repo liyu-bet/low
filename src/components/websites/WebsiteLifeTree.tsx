@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { getInitials } from '@/lib/auth/actor-label';
+import { UserInitials } from '@/components/ui/layout';
 import { formatDateRu } from '@/lib/ui/labels';
 import { cn } from '@/lib/ui/cn';
 import type { LifeTreeNodeView } from '@/lib/websites/life-tree';
@@ -12,22 +12,16 @@ const INITIAL_VISIBLE = 10;
 
 function ManualCard({ node }: { node: LifeTreeNodeView }) {
   const actor = node.actorLabel?.trim() || 'Неизвестный пользователь';
-  const initials = getInitials(actor);
   const activity = node.activityLabel || 'Запись';
   const dateLabel = node.date ? formatDateRu(new Date(node.date)) : '';
 
   return (
-    <li className="rounded-md border border-ink-800/80 bg-moss-50/40 pl-0 shadow-none">
-      <div className="flex gap-3 rounded-md border-l-[3px] border-l-moss-500 px-3 py-2.5">
-        <span
-          aria-hidden="true"
-          className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-ink-900 text-[11px] font-semibold text-ink-50"
-        >
-          {initials}
-        </span>
+    <li className="rounded-[10px] border border-ink-800/80 bg-moss-50/40">
+      <div className="flex gap-3 rounded-[10px] border-l-[3px] border-l-moss-500 px-3 py-2.5">
+        <UserInitials label={actor} />
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
-            <p className="text-xs text-ink-200">
+          <div className="flex flex-col gap-0.5 sm:flex-row sm:flex-wrap sm:items-baseline sm:justify-between sm:gap-x-3">
+            <p className="min-w-0 text-xs text-ink-200">
               <span className="font-medium text-ink-100">{actor}</span>
               <span className="mx-1 text-ink-700">·</span>
               {activity}
@@ -38,7 +32,7 @@ function ManualCard({ node }: { node: LifeTreeNodeView }) {
               </time>
             ) : null}
           </div>
-          <p className="mt-0.5 text-sm font-medium text-ink-50">{node.title}</p>
+          <p className="mt-0.5 break-anywhere text-sm font-medium text-ink-50">{node.title}</p>
           {node.description ? (
             <p className="mt-1 line-clamp-3 text-sm text-ink-200">{node.description}</p>
           ) : null}
@@ -58,7 +52,7 @@ function AutomaticList({ nodes }: { nodes: LifeTreeNodeView[] }) {
       {nodes.map((node) => (
         <li key={node.id} className="flex items-start gap-2 text-sm text-ink-200">
           <span aria-hidden="true" className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-ink-500" />
-          <p className="min-w-0">
+          <p className="min-w-0 break-anywhere">
             {node.date ? formatDateRu(new Date(node.date)) : '—'}
             <span className="mx-1.5 text-ink-700">·</span>
             {node.title}
@@ -75,9 +69,6 @@ export function WebsiteLifeTree({
 }: {
   manual: LifeTreeNodeView[];
   automatic: LifeTreeNodeView[];
-  /** @deprecated ignored — open tasks live in Tasks block */
-  future?: LifeTreeNodeView[];
-  past?: LifeTreeNodeView[];
 }) {
   const [showAutomatic, setShowAutomatic] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -107,7 +98,7 @@ export function WebsiteLifeTree({
         <button
           type="button"
           onClick={() => setExpanded(true)}
-          className="text-sm text-moss-700 underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-moss-500"
+          className="text-sm text-moss-700 underline-offset-2 hover:underline"
         >
           Показать ещё
         </button>
@@ -119,12 +110,12 @@ export function WebsiteLifeTree({
             type="checkbox"
             checked={showAutomatic}
             onChange={(e) => setShowAutomatic(e.target.checked)}
-            className="rounded border-ink-600 text-moss-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-moss-500"
+            className="rounded border-ink-600 text-moss-600"
           />
           Показать автоматические события
         </label>
         {showAutomatic ? (
-          <div className={cn('mt-2', automatic.length > 0 && 'pl-0.5')}>
+          <div className={cn('mt-2')}>
             <AutomaticList nodes={automatic} />
           </div>
         ) : null}

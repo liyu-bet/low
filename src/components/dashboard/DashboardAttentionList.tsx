@@ -75,7 +75,7 @@ export function DashboardAttentionList({ items }: { items: AttentionItem[] }) {
 
   return (
     <>
-      <div className="hidden overflow-x-auto rounded border border-ink-700 md:block">
+      <div className="data-scroll hidden md:block">
         <table className="min-w-full text-left text-sm">
           <thead className="border-b border-ink-700 bg-ink-900 text-xs font-medium text-ink-200">
             <tr>

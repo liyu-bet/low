@@ -38,3 +38,10 @@ Thumbs.db
 .idea/
 .vscode/
 *.swp
+
+# Playwright / local screenshots
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/tmp/

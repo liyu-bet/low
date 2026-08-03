@@ -56,7 +56,7 @@ export function GroupComparison({
           </button>
         </form>
       </div>
-      <div className="overflow-x-auto">
+      <div className="data-scroll">
         <table className="min-w-full text-left text-sm">
           <thead className="text-ink-300">
             <tr className="border-b border-ink-800">

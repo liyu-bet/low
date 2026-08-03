@@ -1,16 +1,19 @@
 'use client';
 
 import Link from 'next/link';
-import { Fragment, useDeferredValue, useMemo, useState } from 'react';
+import { useDeferredValue, useMemo, useState } from 'react';
 import type { LifecycleStage, WebsiteStatus } from '@prisma/client';
 import { QuickWebsiteTaskForm } from '@/components/tasks/QuickWebsiteTaskForm';
-import { WebsiteMilestoneRail } from '@/components/websites/WebsiteMilestoneRail';
+import {
+  MilestoneProgressDots,
+} from '@/components/websites/WebsiteMilestoneRail';
 import { WebsitesBulkPanel } from '@/components/WebsitesBulkPanel';
 import type { WebsiteTableRow } from '@/components/WebsitesTable';
 import { labelLifecycleStage, labelWebsiteStatus } from '@/lib/ui/labels';
 import { cn } from '@/lib/ui/cn';
 import type { MilestoneRailItem } from '@/lib/websites/milestones';
 import type { AvailabilityDot } from '@/lib/websites/workspace';
+import { shouldShowWebsiteName } from '@/lib/auth/actor-label';
 
 export type WebsiteWorkspaceClientRow = {
   id: string;
@@ -79,16 +82,13 @@ function SiteActions({
 }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <Link
-        href={`/websites/${row.id}`}
-        className="rounded border border-ink-700 px-2.5 py-1.5 text-xs font-medium text-ink-100 hover:border-moss-500"
-      >
+      <Link href={`/websites/${row.id}`} className="btn-secondary !min-h-8 !px-2.5 !py-1.5 text-xs">
         Открыть
       </Link>
       <button
         type="button"
         onClick={onToggleInline}
-        className="rounded bg-moss-500 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-moss-600"
+        className="btn-primary !min-h-8 !min-w-0 !px-2.5 !py-1.5 text-xs"
       >
         {inlineOpen ? 'Скрыть' : '+ Задача'}
       </button>
@@ -311,20 +311,29 @@ export function WebsitesWorkspace({
                   <AvailabilityDotView value={row.availability} />
                   <Link
                     href={`/websites/${row.id}`}
-                    className="truncate text-base font-semibold text-ink-50 hover:text-moss-700"
+                    className="break-anywhere text-base font-semibold text-ink-50 hover:text-moss-700"
                   >
                     {row.domain}
                   </Link>
                 </div>
-                {row.name ? <p className="text-sm text-ink-200">{row.name}</p> : null}
+                {shouldShowWebsiteName({
+                  domain: row.domain,
+                  normalizedDomain: row.normalizedDomain,
+                  name: row.name,
+                }) ? (
+                  <p className="text-sm text-ink-200">{row.name}</p>
+                ) : null}
                 <p className="text-xs text-ink-200">
-                  {row.group ? `${row.group} · ` : ''}
-                  {labelLifecycleStage(row.lifecycleStage)}
+                  {labelWebsiteStatus(row.status)} · {labelLifecycleStage(row.lifecycleStage)}
+                  {row.group ? ` · ${row.group}` : ''}
                 </p>
-                <WebsiteMilestoneRail items={row.milestones} />
+                <MilestoneProgressDots items={row.milestones} />
                 <p className="text-xs text-ink-200">
-                  Открытых задач: {row.openTasksCount}
-                  {row.nearestTask ? ` · ${row.nearestTask.title} (${row.nearestTask.dueRelative})` : ''}
+                  {row.nearestTask
+                    ? `${row.nearestTask.title} (${row.nearestTask.dueRelative})`
+                    : row.openTasksCount > 0
+                      ? `Открытых задач: ${row.openTasksCount}`
+                      : 'Нет открытых задач'}
                 </p>
                 <SiteActions
                   row={row}
@@ -349,95 +358,72 @@ export function WebsitesWorkspace({
         ))}
       </ul>
 
-      {/* Desktop table-like list */}
-      <div className="hidden overflow-x-auto rounded-card border border-ink-700 md:block">
-        <table className="w-full min-w-[56rem] text-left text-sm">
-          <thead className="border-b border-ink-700 bg-ink-950/40 text-xs uppercase tracking-wide text-ink-200">
-            <tr>
-              {bulkMode ? <th className="w-10 px-3 py-2" /> : null}
-              <th className="px-3 py-2 font-medium">Сайт</th>
-              <th className="px-3 py-2 font-medium">Этап</th>
-              <th className="min-w-[16rem] px-3 py-2 font-medium">Путь</th>
-              <th className="px-3 py-2 font-medium">Задачи</th>
-              <th className="px-3 py-2 font-medium">Действия</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((row) => (
-              <Fragment key={row.id}>
-                <tr className="border-b border-ink-800/80 align-top">
-                  {bulkMode ? (
-                    <td className="px-3 py-3">
-                      <input
-                        type="checkbox"
-                        checked={selected.has(row.id)}
-                        onChange={() => toggleSelect(row.id)}
-                      />
-                    </td>
-                  ) : null}
-                  <td className="px-3 py-3">
-                    <div className="flex items-center gap-2">
-                      <AvailabilityDotView value={row.availability} />
-                      <div className="min-w-0">
-                        <Link
-                          href={`/websites/${row.id}`}
-                          className="font-semibold text-ink-50 hover:text-moss-700"
-                        >
-                          {row.domain}
-                        </Link>
-                        {row.name ? (
-                          <p className="truncate text-xs text-ink-200">{row.name}</p>
-                        ) : null}
-                        {row.group ? (
-                          <p className="text-xs text-ink-200">{row.group}</p>
-                        ) : null}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-3 py-3 text-ink-100">
+      {/* Desktop list - no wide min-width table scroll */}
+      <ul className="hidden space-y-2 md:block">
+        {filtered.map((row) => (
+          <li key={row.id} className="rounded-[10px] border border-ink-700 bg-white px-3 py-3">
+            <div className="flex flex-wrap items-start gap-3">
+              {bulkMode ? (
+                <input
+                  type="checkbox"
+                  checked={selected.has(row.id)}
+                  onChange={() => toggleSelect(row.id)}
+                  className="mt-1"
+                />
+              ) : null}
+              <div className="min-w-0 flex-1 space-y-1.5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <AvailabilityDotView value={row.availability} />
+                  <Link
+                    href={`/websites/${row.id}`}
+                    className="break-anywhere font-semibold text-ink-50 hover:text-moss-700"
+                  >
+                    {row.domain}
+                  </Link>
+                  <span className="text-xs text-ink-200">
                     {labelLifecycleStage(row.lifecycleStage)}
-                  </td>
-                  <td className="px-3 py-3">
-                    <WebsiteMilestoneRail items={row.milestones} />
-                  </td>
-                  <td className="px-3 py-3 text-ink-200">
-                    <p className="font-medium text-ink-100">{row.openTasksCount}</p>
-                    {row.nearestTask ? (
-                      <p className="mt-0.5 line-clamp-2 text-xs">
-                        {row.nearestTask.title}
-                        <span className="text-ink-200"> · {row.nearestTask.dueRelative}</span>
-                      </p>
-                    ) : (
-                      <p className="text-xs">Нет открытых</p>
-                    )}
-                  </td>
-                  <td className="px-3 py-3">
-                    <SiteActions
-                      row={row}
-                      inlineOpen={inlineTaskFor === row.id}
-                      onToggleInline={() =>
-                        setInlineTaskFor((id) => (id === row.id ? null : row.id))
-                      }
-                    />
-                  </td>
-                </tr>
-                {inlineTaskFor === row.id ? (
-                  <tr className="border-b border-ink-800/80 bg-ink-950/20">
-                    <td colSpan={bulkMode ? 6 : 5} className="px-3 py-3">
-                      <QuickWebsiteTaskForm
-                        websiteId={row.id}
-                        compact
-                        autoFocus
-                        onCancel={() => setInlineTaskFor(null)}
-                      />
-                    </td>
-                  </tr>
+                  </span>
+                </div>
+                {shouldShowWebsiteName({
+                  domain: row.domain,
+                  normalizedDomain: row.normalizedDomain,
+                  name: row.name,
+                }) ? (
+                  <p className="text-xs text-ink-200">{row.name}</p>
                 ) : null}
-              </Fragment>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                <MilestoneProgressDots items={row.milestones} />
+                <p className="text-xs text-ink-200">
+                  {row.nearestTask ? (
+                    <>
+                      {row.nearestTask.title}
+                      <span> · {row.nearestTask.dueRelative}</span>
+                    </>
+                  ) : (
+                    <>Открытых задач: {row.openTasksCount}</>
+                  )}
+                </p>
+              </div>
+              <SiteActions
+                row={row}
+                inlineOpen={inlineTaskFor === row.id}
+                onToggleInline={() =>
+                  setInlineTaskFor((id) => (id === row.id ? null : row.id))
+                }
+              />
+            </div>
+            {inlineTaskFor === row.id ? (
+              <div className="mt-3 border-t border-ink-800 pt-3">
+                <QuickWebsiteTaskForm
+                  websiteId={row.id}
+                  compact
+                  autoFocus
+                  onCancel={() => setInlineTaskFor(null)}
+                />
+              </div>
+            ) : null}
+          </li>
+        ))}
+      </ul>
 
       {filtered.length === 0 ? (
         <p className="py-8 text-center text-sm text-ink-200">Сайты не найдены.</p>

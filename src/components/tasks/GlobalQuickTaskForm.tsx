@@ -1,21 +1,21 @@
 'use client';
 
-import { useActionState, useEffect, useRef } from 'react';
+import { useActionState, useEffect, useRef, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { createTaskAction, type TaskActionState } from '@/app/(app)/tasks/actions';
+import { InlineNotice } from '@/components/ui/layout';
+import { preserveScroll } from '@/components/ui/ActionMenu';
 import type { WebsiteOption } from '@/lib/tasks/types';
 import { TaskPriority } from '@prisma/client';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="shrink-0 rounded bg-moss-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-moss-600 disabled:opacity-60"
-    >
-      {pending ? '…' : 'Добавить'}
+    <button type="submit" disabled={pending} className="btn-primary shrink-0">
+      <span className="inline-block min-w-[4.75rem] text-center">
+        {pending ? '…' : 'Добавить'}
+      </span>
     </button>
   );
 }
@@ -29,40 +29,38 @@ export function GlobalQuickTaskForm({
 }) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
+  const titleRef = useRef<HTMLInputElement>(null);
   const [state, formAction] = useActionState(createTaskAction, {} as TaskActionState);
+  const [flashOk, setFlashOk] = useState(false);
 
   useEffect(() => {
-    if (state.ok) {
-      formRef.current?.reset();
-      router.refresh();
-    }
+    if (!state.ok) return;
+    formRef.current?.reset();
+    setFlashOk(true);
+    preserveScroll(() => router.refresh());
+    titleRef.current?.focus();
+    const timer = window.setTimeout(() => setFlashOk(false), 2500);
+    return () => window.clearTimeout(timer);
   }, [state, router]);
 
   if (websites.length === 0) {
-    return (
-      <p className="text-sm text-ink-200">Нет активных сайтов для новых задач.</p>
-    );
+    return <p className="text-sm text-ink-200">Нет активных сайтов для новых задач.</p>;
   }
 
   return (
     <form ref={formRef} action={formAction} className="space-y-2">
       <input type="hidden" name="priority" value={TaskPriority.MEDIUM} />
       {state.error ? (
-        <p className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p className="inline-notice-error" role="alert">
           {state.error}
         </p>
       ) : null}
-      {state.ok && state.message ? (
-        <p className="rounded border border-moss-500/40 bg-moss-50 px-3 py-2 text-sm text-moss-700">
-          {state.message}
-        </p>
-      ) : null}
-      <div className="flex flex-wrap items-stretch gap-2">
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
         <select
           name="websiteId"
           required
           defaultValue={defaultWebsiteId ?? ''}
-          className="w-full rounded border border-ink-700 bg-white px-3 py-2.5 text-sm text-ink-50 sm:w-52"
+          className="field-input min-w-0 sm:max-w-[14rem]"
         >
           <option value="" disabled>
             Сайт
@@ -74,13 +72,19 @@ export function GlobalQuickTaskForm({
           ))}
         </select>
         <input
+          ref={titleRef}
           name="title"
           required
           maxLength={200}
           placeholder="Что нужно сделать?"
-          className="min-w-0 flex-1 rounded border border-ink-700 bg-white px-3 py-2.5 text-sm text-ink-50 placeholder:text-ink-200"
+          className="field-input min-w-0 flex-1"
         />
-        <SubmitButton />
+        <div className="flex items-center gap-2">
+          <SubmitButton />
+          <span className="inline-flex min-w-[4.75rem] items-center">
+            {flashOk ? <InlineNotice>Добавлено</InlineNotice> : null}
+          </span>
+        </div>
       </div>
     </form>
   );
