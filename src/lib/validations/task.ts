@@ -24,12 +24,23 @@ const dueAtField = z
     }
   });
 
+/** `__self__` / empty / absent → assign to actor; `__none__` → unassigned; else user id. */
+const assignedToField = z
+  .string()
+  .optional()
+  .transform((value) => {
+    if (value == null || value.trim() === '' || value === '__self__') return 'self' as const;
+    if (value === '__none__') return 'none' as const;
+    return value.trim();
+  });
+
 export const taskCreateSchema = z.object({
   websiteId: z.string().trim().min(1, 'Сайт обязателен'),
   title: z.string().trim().min(1, 'Название обязательно').max(200),
   description: optionalTrimmed,
   priority: z.nativeEnum(TaskPriority).default(TaskPriority.MEDIUM),
   dueAt: dueAtField,
+  assignedToUserId: assignedToField,
 });
 
 export const taskUpdateSchema = z.object({
@@ -37,6 +48,7 @@ export const taskUpdateSchema = z.object({
   description: optionalTrimmed,
   priority: z.nativeEnum(TaskPriority),
   dueAt: dueAtField,
+  assignedToUserId: assignedToField.optional(),
 });
 
 export const taskCompleteSchema = z.object({

@@ -2,7 +2,8 @@
 
 import { revalidatePath } from 'next/cache';
 import { ZodError } from 'zod';
-import { requireAdminSession } from '@/app/login/actions';
+import { requireUserSession } from '@/app/login/actions';
+import { authorSnapshot } from '@/lib/auth/session';
 import { createManualWebsiteEvent, isWebsiteNotFoundError } from '@/lib/events/service';
 
 export type EventFormState = {
@@ -32,10 +33,11 @@ export async function createManualEventAction(
   _prev: EventFormState,
   formData: FormData,
 ): Promise<EventFormState> {
-  const session = await requireAdminSession();
+  const session = await requireUserSession();
   try {
     await createManualWebsiteEvent(websiteId, formDataToObject(formData), {
-      createdBy: session.email,
+      createdBy: authorSnapshot(session),
+      createdByUserId: session.userId,
     });
     revalidatePath(`/websites/${websiteId}`);
     revalidatePath('/websites');

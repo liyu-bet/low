@@ -6,6 +6,7 @@ import {
   TaskStatus,
   type WebsiteTask,
 } from '@prisma/client';
+import { resolveActorLabel } from '@/lib/auth/actor-label';
 import { EVENT_TYPE_TASK_COMPLETED } from '@/lib/constants';
 import { dateOnlyToInputValue } from '@/lib/dates/date-only';
 import { prisma } from '@/lib/db/prisma';
@@ -48,10 +49,32 @@ const VALID_FOCUS = new Set<TaskFocus>([
   'in_progress',
   'done',
   'canceled',
+  'mine',
 ]);
 
 const VALID_PRIORITY = new Set<TaskPriority>(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']);
 const VALID_STATUS = new Set<TaskStatus>(['TODO', 'IN_PROGRESS', 'DONE', 'CANCELED']);
+
+const taskUserSelect = {
+  id: true,
+  name: true,
+  email: true,
+} as const;
+
+const taskInclude = {
+  website: {
+    select: {
+      id: true,
+      domain: true,
+      name: true,
+      group: true,
+      archivedAt: true,
+    },
+  },
+  createdByUser: { select: taskUserSelect },
+  assignedToUser: { select: taskUserSelect },
+  completedByUser: { select: taskUserSelect },
+} as const;
 
 export class TaskNotFoundError extends Error {
   constructor(message = 'Задача не найдена') {
@@ -90,6 +113,8 @@ export function parseTaskFilters(
       : '',
     status: VALID_STATUS.has(statusRaw as TaskStatus) ? (statusRaw as TaskStatus) : '',
     action: actionRaw === 'create' ? 'create' : '',
+    assignedToUserId: raw('assignedToUserId'),
+    createdByUserId: raw('createdByUserId'),
   };
 }
 
@@ -101,10 +126,14 @@ export function buildTasksQuery(filters: Partial<TaskFilters>): string {
   if (filters.group) params.set('group', filters.group);
   if (filters.priority) params.set('priority', filters.priority);
   if (filters.status) params.set('status', filters.status);
+  if (filters.assignedToUserId) params.set('assignedToUserId', filters.assignedToUserId);
+  if (filters.createdByUserId) params.set('createdByUserId', filters.createdByUserId);
   if (filters.action === 'create') params.set('action', 'create');
   const qs = params.toString();
   return qs ? `/tasks?${qs}` : '/tasks';
 }
+
+type TaskUserLite = { id: string; name: string; email: string };
 
 type TaskWithWebsite = WebsiteTask & {
   website: {
@@ -114,6 +143,9 @@ type TaskWithWebsite = WebsiteTask & {
     group: string | null;
     archivedAt: Date | null;
   };
+  createdByUser?: TaskUserLite | null;
+  assignedToUser?: TaskUserLite | null;
+  completedByUser?: TaskUserLite | null;
 };
 
 function toListItem(task: TaskWithWebsite, now: Date): TaskListItem {
@@ -132,11 +164,24 @@ function toListItem(task: TaskWithWebsite, now: Date): TaskListItem {
     dueBucket: classifyTaskDue(task.dueAt, now),
     dueRelative: formatDueRelative(task.dueAt, now),
     daysUntil: daysUntilDue(task.dueAt, now),
+    createdByUserId: task.createdByUserId,
+    assignedToUserId: task.assignedToUserId,
+    completedByUserId: task.completedByUserId,
+    createdByLabel: resolveActorLabel({
+      user: task.createdByUser,
+      legacy: task.createdBy,
+    }),
+    assignedToLabel: task.assignedToUser
+      ? resolveActorLabel({ user: task.assignedToUser })
+      : null,
+    completedByLabel: task.completedByUser
+      ? resolveActorLabel({ user: task.completedByUser })
+      : null,
     website: task.website,
   };
 }
 
-function matchesFocus(item: TaskListItem, focus: TaskFocus, now: Date): boolean {
+function matchesFocus(item: TaskListItem, focus: TaskFocus, now: Date, currentUserId?: string): boolean {
   switch (focus) {
     case 'open':
       return isOpenTaskStatus(item.status);
@@ -156,6 +201,12 @@ function matchesFocus(item: TaskListItem, focus: TaskFocus, now: Date): boolean 
       return item.status === 'DONE';
     case 'canceled':
       return item.status === 'CANCELED';
+    case 'mine':
+      return (
+        isOpenTaskStatus(item.status) &&
+        Boolean(currentUserId) &&
+        item.assignedToUserId === currentUserId
+      );
     default:
       return true;
   }
@@ -168,11 +219,17 @@ function filterTaskItems(
 ): TaskListItem[] {
   const q = filters.q.trim().toLowerCase();
   return items.filter((item) => {
-    if (!matchesFocus(item, filters.focus, now)) return false;
+    if (!matchesFocus(item, filters.focus, now, filters.currentUserId)) return false;
     if (filters.websiteId && item.websiteId !== filters.websiteId) return false;
     if (filters.group && (item.website.group ?? '') !== filters.group) return false;
     if (filters.priority && item.priority !== filters.priority) return false;
     if (filters.status && item.status !== filters.status) return false;
+    if (filters.assignedToUserId && item.assignedToUserId !== filters.assignedToUserId) {
+      return false;
+    }
+    if (filters.createdByUserId && item.createdByUserId !== filters.createdByUserId) {
+      return false;
+    }
     if (q) {
       const hay = `${item.title} ${item.description ?? ''} ${item.website.domain} ${item.website.name ?? ''}`.toLowerCase();
       if (!hay.includes(q)) return false;
@@ -181,7 +238,7 @@ function filterTaskItems(
   });
 }
 
-function buildSummary(items: TaskListItem[], now: Date): TaskSummary {
+function buildSummary(items: TaskListItem[], now: Date, currentUserId?: string): TaskSummary {
   const open = items.filter((i) => isOpenTaskStatus(i.status));
   return {
     overdue: open.filter((i) => i.dueBucket === 'overdue').length,
@@ -190,6 +247,7 @@ function buildSummary(items: TaskListItem[], now: Date): TaskSummary {
     noDue: open.filter((i) => i.dueBucket === 'none').length,
     inProgress: items.filter((i) => i.status === 'IN_PROGRESS').length,
     done: items.filter((i) => i.status === 'DONE').length,
+    mine: open.filter((i) => currentUserId && i.assignedToUserId === currentUserId).length,
   };
 }
 
@@ -207,26 +265,25 @@ export async function listActiveWebsitesForTasks(): Promise<WebsiteOption[]> {
 
 export async function getTasksPageData(
   searchParams: Record<string, string | string[] | undefined> = {},
-  now: Date = new Date(),
+  options: { now?: Date; currentUserId?: string } = {},
 ): Promise<TasksPageData> {
-  const filters = parseTaskFilters(searchParams);
+  const now = options.now ?? new Date();
+  const filters: TaskFilters = {
+    ...parseTaskFilters(searchParams),
+    currentUserId: options.currentUserId,
+  };
 
-  const [tasks, websites] = await Promise.all([
+  const [tasks, websites, users] = await Promise.all([
     prisma.websiteTask.findMany({
-      include: {
-        website: {
-          select: {
-            id: true,
-            domain: true,
-            name: true,
-            group: true,
-            archivedAt: true,
-          },
-        },
-      },
+      include: taskInclude,
       orderBy: { createdAt: 'desc' },
     }),
     listActiveWebsitesForTasks(),
+    prisma.user.findMany({
+      where: { isActive: true },
+      select: taskUserSelect,
+      orderBy: [{ name: 'asc' }, { email: 'asc' }],
+    }),
   ]);
 
   const items = tasks.map((task) => toListItem(task, now));
@@ -247,12 +304,13 @@ export async function getTasksPageData(
   ].sort((a, b) => a.localeCompare(b, 'ru'));
 
   return {
-    summary: buildSummary(items, now),
+    summary: buildSummary(items, now, options.currentUserId),
     items: ordered,
     filteredItems,
     filters,
     websites,
     groups,
+    users,
   };
 }
 
@@ -262,17 +320,7 @@ export async function getWebsiteTasksBlock(
 ): Promise<WebsiteTasksBlockData> {
   const tasks = await prisma.websiteTask.findMany({
     where: { websiteId },
-    include: {
-      website: {
-        select: {
-          id: true,
-          domain: true,
-          name: true,
-          group: true,
-          archivedAt: true,
-        },
-      },
-    },
+    include: taskInclude,
     orderBy: { createdAt: 'desc' },
   });
 
@@ -366,10 +414,25 @@ async function assertWebsiteExists(websiteId: string, options?: { allowArchived?
 
 export async function createWebsiteTask(
   raw: unknown,
-  options: { createdBy: string },
+  options: {
+    actor: { userId: string; label: string };
+  },
 ): Promise<WebsiteTask> {
   const data = taskCreateSchema.parse(raw);
+  // Ignore any forged author fields from the client.
   await assertWebsiteExists(data.websiteId);
+
+  let assignedToUserId: string | null = options.actor.userId;
+  if (data.assignedToUserId === 'none') {
+    assignedToUserId = null;
+  } else if (data.assignedToUserId !== 'self') {
+    const assignee = await prisma.user.findFirst({
+      where: { id: data.assignedToUserId, isActive: true },
+      select: { id: true },
+    });
+    if (!assignee) throw new TaskStateError('Исполнитель не найден или отключён');
+    assignedToUserId = assignee.id;
+  }
 
   return prisma.websiteTask.create({
     data: {
@@ -378,14 +441,16 @@ export async function createWebsiteTask(
       description: data.description ?? null,
       priority: data.priority,
       dueAt: data.dueAt,
-      createdBy: options.createdBy,
+      createdBy: options.actor.label,
+      createdByUserId: options.actor.userId,
+      assignedToUserId,
     },
   });
 }
 
 export async function createWebsiteTaskFromForm(
   formData: FormData,
-  options: { createdBy: string },
+  options: { actor: { userId: string; label: string } },
 ): Promise<WebsiteTask> {
   return createWebsiteTask(formDataToObject(formData), options);
 }
@@ -393,6 +458,7 @@ export async function createWebsiteTaskFromForm(
 export async function updateWebsiteTask(
   taskId: string,
   raw: unknown,
+  options?: { actorUserId?: string },
 ): Promise<WebsiteTask> {
   const existing = await prisma.websiteTask.findUnique({ where: { id: taskId } });
   if (!existing) throw new TaskNotFoundError();
@@ -401,6 +467,22 @@ export async function updateWebsiteTask(
   }
 
   const data = taskUpdateSchema.parse(raw);
+  let assignedToUserId = existing.assignedToUserId;
+  if (data.assignedToUserId != null) {
+    if (data.assignedToUserId === 'none') {
+      assignedToUserId = null;
+    } else if (data.assignedToUserId === 'self') {
+      assignedToUserId = options?.actorUserId ?? existing.assignedToUserId;
+    } else {
+      const assignee = await prisma.user.findFirst({
+        where: { id: data.assignedToUserId, isActive: true },
+        select: { id: true },
+      });
+      if (!assignee) throw new TaskStateError('Исполнитель не найден или отключён');
+      assignedToUserId = assignee.id;
+    }
+  }
+
   return prisma.websiteTask.update({
     where: { id: taskId },
     data: {
@@ -408,6 +490,7 @@ export async function updateWebsiteTask(
       description: data.description ?? null,
       priority: data.priority,
       dueAt: data.dueAt,
+      assignedToUserId,
     },
   });
 }
@@ -415,8 +498,28 @@ export async function updateWebsiteTask(
 export async function updateWebsiteTaskFromForm(
   taskId: string,
   formData: FormData,
+  options?: { actorUserId?: string },
 ): Promise<WebsiteTask> {
-  return updateWebsiteTask(taskId, formDataToObject(formData));
+  return updateWebsiteTask(taskId, formDataToObject(formData), options);
+}
+
+export async function getWebsiteTaskAuthFields(taskId: string): Promise<{
+  id: string;
+  websiteId: string;
+  createdByUserId: string | null;
+  assignedToUserId: string | null;
+  status: TaskStatus;
+} | null> {
+  return prisma.websiteTask.findUnique({
+    where: { id: taskId },
+    select: {
+      id: true,
+      websiteId: true,
+      createdByUserId: true,
+      assignedToUserId: true,
+      status: true,
+    },
+  });
 }
 
 export async function startWebsiteTask(taskId: string): Promise<WebsiteTask> {
@@ -460,7 +563,10 @@ export type CompleteTaskResult = {
 export async function completeWebsiteTask(
   taskId: string,
   raw: unknown,
-  options: { createdBy: string; now?: Date },
+  options: {
+    actor: { userId: string; label: string };
+    now?: Date;
+  },
 ): Promise<CompleteTaskResult> {
   const input = taskCompleteSchema.parse(raw ?? {});
   const now = options.now ?? new Date();
@@ -484,6 +590,7 @@ export async function completeWebsiteTask(
         status: TaskStatus.DONE,
         completedAt,
         result: input.result ?? null,
+        completedByUserId: options.actor.userId,
       },
     });
 
@@ -504,7 +611,8 @@ export async function completeWebsiteTask(
           title: `Выполнена задача: ${task.title}`,
           description: input.result ?? task.description ?? null,
           occurredAt: completedAt,
-          createdBy: options.createdBy,
+          createdBy: options.actor.label,
+          createdByUserId: options.actor.userId,
           dedupeKey: taskCompletedDedupeKey(task.id),
           metadata: {
             taskId: task.id,
@@ -532,7 +640,7 @@ export async function completeWebsiteTask(
 export async function completeWebsiteTaskFromForm(
   taskId: string,
   formData: FormData,
-  options: { createdBy: string },
+  options: { actor: { userId: string; label: string } },
 ): Promise<CompleteTaskResult> {
   return completeWebsiteTask(taskId, formDataToObject(formData), options);
 }

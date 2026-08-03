@@ -1,10 +1,24 @@
 import { AUTH_COOKIE_NAME, SESSION_TTL_SECONDS } from '@/lib/constants';
+import type { UserRole } from '@prisma/client';
 
-export type AdminSession = {
-  email: string;
-  scope: 'admin';
+/** Cookie payload — no secrets. */
+export type SessionTokenPayload = {
+  userId: string;
+  sessionVersion: number;
   exp: number;
 };
+
+/** Resolved session after DB checks. */
+export type UserSession = {
+  userId: string;
+  email: string;
+  name: string;
+  role: UserRole;
+  mustChangePassword: boolean;
+};
+
+/** @deprecated Alias kept for gradual migration of call sites. */
+export type AdminSession = UserSession;
 
 function getSessionSecret(): string {
   const secret = process.env.SESSION_SECRET?.trim() ?? '';
@@ -49,17 +63,20 @@ async function sign(payload: string): Promise<string> {
   return bytesToBase64Url(new Uint8Array(signature));
 }
 
-function safeEqual(a: string, b: string): boolean {
+export function safeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
   let result = 0;
   for (let i = 0; i < a.length; i++) result |= a.charCodeAt(i) ^ b.charCodeAt(i);
   return result === 0;
 }
 
-export async function createSessionToken(email: string): Promise<string> {
-  const payload: AdminSession = {
-    email,
-    scope: 'admin',
+export async function createSessionToken(options: {
+  userId: string;
+  sessionVersion: number;
+}): Promise<string> {
+  const payload: SessionTokenPayload = {
+    userId: options.userId,
+    sessionVersion: options.sessionVersion,
     exp: Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS,
   };
   const encodedPayload = toBase64Url(JSON.stringify(payload));
@@ -67,7 +84,10 @@ export async function createSessionToken(email: string): Promise<string> {
   return `${encodedPayload}.${signature}`;
 }
 
-export async function verifySessionToken(token?: string | null): Promise<AdminSession | null> {
+/** Verifies signature and expiry only (no DB). Used by middleware. */
+export async function verifySessionToken(
+  token?: string | null,
+): Promise<SessionTokenPayload | null> {
   if (!token) return null;
   const [encodedPayload, signature] = token.split('.');
   if (!encodedPayload || !signature) return null;
@@ -76,11 +96,16 @@ export async function verifySessionToken(token?: string | null): Promise<AdminSe
   if (!safeEqual(signature, expected)) return null;
 
   try {
-    const payload = JSON.parse(fromBase64Url(encodedPayload)) as AdminSession;
-    if (payload.scope !== 'admin') return null;
-    if (!payload.email || !payload.exp) return null;
+    const payload = JSON.parse(fromBase64Url(encodedPayload)) as Partial<SessionTokenPayload>;
+    if (!payload.userId || typeof payload.sessionVersion !== 'number' || !payload.exp) {
+      return null;
+    }
     if (payload.exp < Math.floor(Date.now() / 1000)) return null;
-    return payload;
+    return {
+      userId: payload.userId,
+      sessionVersion: payload.sessionVersion,
+      exp: payload.exp,
+    };
   } catch {
     return null;
   }
@@ -100,7 +125,8 @@ export function getSessionCookieOptions() {
   };
 }
 
-export function verifyAdminCredentials(email: string, password: string): boolean {
+/** Env credentials — only for empty User table bootstrap. */
+export function verifyEnvAdminCredentials(email: string, password: string): boolean {
   const expectedEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase() ?? '';
   const expectedPassword = process.env.ADMIN_PASSWORD ?? '';
   if (!expectedEmail || !expectedPassword) return false;
@@ -111,10 +137,9 @@ export function verifyAdminCredentials(email: string, password: string): boolean
   return emailOk && passwordOk;
 }
 
-/**
- * Pure helper for route protection decisions (unit-tested).
- * Returns a login redirect path when the session is missing.
- */
+/** @deprecated Use verifyEnvAdminCredentials — kept for older tests during migration. */
+export const verifyAdminCredentials = verifyEnvAdminCredentials;
+
 export function resolveProtectedPathAccess(options: {
   pathname: string;
   hasValidSession: boolean;
@@ -130,6 +155,10 @@ export function resolveProtectedPathAccess(options: {
     options.pathname.startsWith('/websites/') ||
     options.pathname === '/integrations' ||
     options.pathname.startsWith('/integrations/') ||
+    options.pathname === '/account' ||
+    options.pathname.startsWith('/account/') ||
+    options.pathname === '/settings' ||
+    options.pathname.startsWith('/settings/') ||
     options.pathname === '/logout';
 
   if (!isProtected) {
@@ -151,11 +180,55 @@ export class UnauthorizedError extends Error {
   }
 }
 
-/** Pure auth guard (unit-tested). Server pages also use requireAdminSession(). */
+export class ForbiddenError extends Error {
+  constructor(message = 'Недостаточно прав') {
+    super(message);
+    this.name = 'ForbiddenError';
+  }
+}
+
 export function assertAuthenticated(
-  session: AdminSession | null | undefined,
-): asserts session is AdminSession {
+  session: UserSession | null | undefined,
+): asserts session is UserSession {
   if (!session) {
     throw new UnauthorizedError();
   }
+}
+
+export function assertAdmin(
+  session: UserSession | null | undefined,
+): asserts session is UserSession {
+  assertAuthenticated(session);
+  if (session.role !== 'ADMIN') {
+    throw new ForbiddenError('Требуются права администратора');
+  }
+}
+
+export function authorSnapshot(session: Pick<UserSession, 'name' | 'email'>): string {
+  const name = session.name?.trim();
+  if (name) return name;
+  return session.email;
+}
+
+export function userInitials(name: string, email: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) {
+    return `${parts[0]![0] ?? ''}${parts[1]![0] ?? ''}`.toUpperCase();
+  }
+  if (parts.length === 1 && parts[0]!.length >= 2) {
+    return parts[0]!.slice(0, 2).toUpperCase();
+  }
+  if (parts.length === 1 && parts[0]!.length === 1) {
+    return parts[0]!.toUpperCase();
+  }
+  return (email.trim()[0] ?? '?').toUpperCase();
+}
+
+export function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
+export function defaultNameFromEmail(email: string): string {
+  const local = normalizeEmail(email).split('@')[0] ?? 'admin';
+  return local || 'admin';
 }

@@ -109,7 +109,7 @@ export async function getWebsiteById(id: string): Promise<Website> {
 
 export async function createWebsite(
   raw: unknown,
-  options?: { createdBy?: string },
+  options?: { createdBy?: string; createdByUserId?: string | null },
 ): Promise<Website> {
   const { data } = prepareWebsiteCreateData(raw);
   await assertUniqueNormalizedDomain(data.normalizedDomain);
@@ -146,6 +146,7 @@ export async function createWebsite(
           dedupeKey: `website:${website.id}:${EVENT_TYPE_SITE_CREATED}`,
           occurredAt: website.createdAt,
           createdBy: options?.createdBy ?? 'admin',
+          createdByUserId: options?.createdByUserId ?? null,
           metadata: {
             domain: website.domain,
             normalizedDomain: website.normalizedDomain,

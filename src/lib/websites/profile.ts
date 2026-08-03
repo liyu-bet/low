@@ -4,6 +4,7 @@ import {
   type WebsiteEvent,
   type WebsiteIntegration,
 } from '@prisma/client';
+import { resolveActorLabel } from '@/lib/auth/actor-label';
 import { GSC_LIFECYCLE_SYNC_JOB_TYPE } from '@/lib/constants';
 import { evaluateWebsiteAttention, parseLifecycleErrorPropertyIds } from '@/lib/dashboard/attention';
 import type { AttentionItem } from '@/lib/dashboard/types';
@@ -160,6 +161,10 @@ export async function getWebsiteProfile(
           dueAt: true,
           completedAt: true,
           createdAt: true,
+          createdBy: true,
+          createdByUser: { select: { name: true, email: true } },
+          assignedToUser: { select: { name: true, email: true } },
+          completedByUser: { select: { name: true, email: true } },
         },
       }),
       prisma.websiteEvent.findMany({
@@ -172,6 +177,8 @@ export async function getWebsiteProfile(
           description: true,
           source: true,
           occurredAt: true,
+          createdBy: true,
+          createdByUser: { select: { name: true, email: true } },
         },
         orderBy: { occurredAt: 'asc' },
         take: 500,
@@ -215,8 +222,26 @@ export async function getWebsiteProfile(
   const milestones = buildWebsiteMilestones(website);
   const lifeTree = buildWebsiteLifeTree({
     website,
-    tasks: lifeTreeTasks,
-    events: lifeTreeEvents,
+    tasks: lifeTreeTasks.map((task) => ({
+      ...task,
+      actorLabel:
+        task.status === 'DONE'
+          ? resolveActorLabel({
+              user: task.completedByUser ?? task.createdByUser,
+              legacy: task.createdBy,
+            })
+          : resolveActorLabel({
+              user: task.assignedToUser ?? task.createdByUser,
+              legacy: task.createdBy,
+            }),
+    })),
+    events: lifeTreeEvents.map((event) => ({
+      ...event,
+      actorLabel: resolveActorLabel({
+        user: event.createdByUser,
+        legacy: event.createdBy,
+      }),
+    })),
   });
 
   return {

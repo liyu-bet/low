@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { ZodError } from 'zod';
 import { requireAdminSession } from '@/app/login/actions';
+import { authorSnapshot } from '@/lib/auth/session';
 import {
   archiveWebsite,
   createWebsite,
@@ -49,7 +50,8 @@ export async function createWebsiteAction(
   const session = await requireAdminSession();
   try {
     const website = await createWebsite(formDataToObject(formData), {
-      createdBy: session.email,
+      createdBy: authorSnapshot(session),
+      createdByUserId: session.userId,
     });
     revalidatePath('/websites');
     return { ok: true, redirectTo: `/websites/${website.id}` };

@@ -37,13 +37,13 @@ Implemented:
 - PostgreSQL + Prisma
 - Tailwind CSS + Zod
 - Docker Compose (web + worker + Postgres)
-- Cookie-based single-admin auth
+- Cookie-based multi-user auth (ADMIN / MEMBER in PostgreSQL)
 
 ## Quick start (local)
 
 ```bash
 cp .env.example .env
-# Set ADMIN_EMAIL, ADMIN_PASSWORD, SESSION_SECRET, POSTGRES_PASSWORD, DATABASE_URL
+# Set ADMIN_EMAIL, ADMIN_PASSWORD (bootstrap only), SESSION_SECRET, POSTGRES_PASSWORD, DATABASE_URL
 
 npm install
 ```
@@ -106,10 +106,19 @@ docker compose up --build
 | `npm run db:check` | `SELECT 1` against local Postgres |
 | `npm run worker:start` | Unified DSD/GSC sync worker |
 
+## Auth
+
+- Local users in PostgreSQL (`User` model): roles `ADMIN` and `MEMBER`.
+- Passwords stored as versioned scrypt hashes (never plaintext).
+- Users are deactivated (`isActive=false`), not deleted — authorship history is kept.
+- Tasks and manual events store `createdByUserId` plus a legacy `createdBy` snapshot.
+- `ADMIN_EMAIL` / `ADMIN_PASSWORD` are used **only** to bootstrap the first ADMIN when the User table is empty; after that, login uses the User table only.
+- HMAC-signed session cookie: `userId` + `sessionVersion` + expiry (`SESSION_SECRET` ≥16 chars).
+
 ## Auth env
 
-- `ADMIN_EMAIL`
-- `ADMIN_PASSWORD`
+- `ADMIN_EMAIL` — bootstrap only
+- `ADMIN_PASSWORD` — bootstrap only
 - `SESSION_SECRET` (≥16 chars)
 
 ## DSD sync env (server-only)

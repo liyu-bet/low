@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
-import { requireAdminSession } from '@/app/login/actions';
+import { requireUserSession } from '@/app/login/actions';
 import { buildReportsCsvExport } from '@/lib/reports/service';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 export async function GET(request: Request) {
-  await requireAdminSession();
+  await requireUserSession();
 
   const url = new URL(request.url);
   const searchParams: Record<string, string> = {};

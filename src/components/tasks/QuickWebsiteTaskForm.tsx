@@ -33,11 +33,13 @@ export function QuickWebsiteTaskForm({
   compact = false,
   onCancel,
   autoFocus = false,
+  assignees = [],
 }: {
   websiteId: string;
   compact?: boolean;
   onCancel?: () => void;
   autoFocus?: boolean;
+  assignees?: Array<{ id: string; name: string; email: string }>;
 }) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
@@ -163,6 +165,22 @@ export function QuickWebsiteTaskForm({
                   />
                 </label>
               ) : null}
+              <label className="block text-sm text-ink-200 sm:col-span-2">
+                Исполнитель
+                <select
+                  name="assignedToUserId"
+                  defaultValue="__self__"
+                  className="mt-1 w-full rounded border border-ink-700 bg-white px-3 py-2 text-ink-50"
+                >
+                  <option value="__self__">Я</option>
+                  <option value="__none__">Не назначать</option>
+                  {assignees.map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {user.name} ({user.email})
+                    </option>
+                  ))}
+                </select>
+              </label>
             </div>
           ) : null}
         </div>

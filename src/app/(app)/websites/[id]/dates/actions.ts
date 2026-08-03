@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { ZodError } from 'zod';
 import { requireAdminSession } from '@/app/login/actions';
-import { assertAuthenticated } from '@/lib/auth/session';
+import { assertAuthenticated, authorSnapshot } from '@/lib/auth/session';
 import { DateOnlyError } from '@/lib/dates/date-only';
 import {
   clearDateOverride,
@@ -44,7 +44,10 @@ export async function setDateOverrideAction(
   assertAuthenticated(session);
   const payload = formDataToObject(formData);
   try {
-    await setDateOverride(websiteId, payload, { createdBy: session.email });
+    await setDateOverride(websiteId, payload, {
+      createdBy: authorSnapshot(session),
+      createdByUserId: session.userId,
+    });
     revalidatePath(`/websites/${websiteId}`);
     revalidatePath('/websites');
     return { ok: true, field: payload.field };
@@ -62,7 +65,10 @@ export async function clearDateOverrideAction(
   assertAuthenticated(session);
   const payload = formDataToObject(formData);
   try {
-    await clearDateOverride(websiteId, payload, { createdBy: session.email });
+    await clearDateOverride(websiteId, payload, {
+      createdBy: authorSnapshot(session),
+      createdByUserId: session.userId,
+    });
     revalidatePath(`/websites/${websiteId}`);
     revalidatePath('/websites');
     return { ok: true, field: payload.field };

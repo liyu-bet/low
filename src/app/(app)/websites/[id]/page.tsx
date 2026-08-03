@@ -21,6 +21,8 @@ import {
   getWebsiteProfile,
   isWebsiteProfileNotFoundError,
 } from '@/lib/websites/profile';
+import { listActiveUsersForAssign } from '@/lib/auth/users';
+import { requireUserSession } from '@/app/login/actions';
 import { notFound } from 'next/navigation';
 
 export default async function WebsiteDetailPage({
@@ -41,9 +43,12 @@ export default async function WebsiteDetailPage({
     throw error;
   }
 
+  const session = await requireUserSession();
+  const assignees = await listActiveUsersForAssign();
   const { website } = profile;
   const createEvent = createManualEventAction.bind(null, website.id);
   const archived = Boolean(website.archivedAt || website.status === 'ARCHIVED');
+  const isAdmin = session.role === 'ADMIN';
   const dsdLabel =
     profile.dsdIntegration && profile.overview.dsdAvailability !== 'Нет связи с DSD'
       ? 'подключено'
@@ -53,7 +58,11 @@ export default async function WebsiteDetailPage({
   return (
     <div className="space-y-8">
       {/* A. Header */}
-      <WebsiteProfileHeader website={website} openUrl={profile.overview.openUrl} />
+      <WebsiteProfileHeader
+        website={website}
+        openUrl={profile.overview.openUrl}
+        showSettings={isAdmin}
+      />
 
       {/* B. Life path */}
       <section className="space-y-2">
@@ -69,6 +78,7 @@ export default async function WebsiteDetailPage({
         websiteId={website.id}
         archived={archived}
         openTasks={profile.tasks.openTasks}
+        assignees={assignees}
       />
 
       {/* D. Life tree */}
@@ -123,14 +133,16 @@ export default async function WebsiteDetailPage({
             </div>
           </details>
 
-          <details id="settings" className="rounded border border-ink-700">
-            <summary className="cursor-pointer px-3 py-2 text-sm font-medium text-ink-50">
-              Настройки сайта
-            </summary>
-            <div className="space-y-4 border-t border-ink-700 p-3">
-              <WebsiteSettingsBlock website={website} />
-            </div>
-          </details>
+          {isAdmin ? (
+            <details id="settings" className="rounded border border-ink-700">
+              <summary className="cursor-pointer px-3 py-2 text-sm font-medium text-ink-50">
+                Настройки сайта
+              </summary>
+              <div className="space-y-4 border-t border-ink-700 p-3">
+                <WebsiteSettingsBlock website={website} />
+              </div>
+            </details>
+          ) : null}
 
           <details className="rounded border border-ink-700">
             <summary className="cursor-pointer px-3 py-2 text-sm font-medium text-ink-50">

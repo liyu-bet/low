@@ -93,7 +93,7 @@ export async function getWebsiteEventStats(
 export async function createManualWebsiteEvent(
   websiteId: string,
   raw: unknown,
-  options?: { createdBy?: string },
+  options?: { createdBy?: string; createdByUserId?: string | null },
 ): Promise<WebsiteEvent> {
   await getWebsiteById(websiteId);
   const data = manualEventSchema.parse(raw);
@@ -116,6 +116,7 @@ export async function createManualWebsiteEvent(
         quantity: data.quantity ?? null,
         unit: data.unit ?? null,
         createdBy: options?.createdBy ?? 'admin',
+        createdByUserId: options?.createdByUserId ?? null,
       },
     });
 

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { requireUserSession } from '@/app/login/actions';
 import { CompactTaskRow } from '@/components/tasks/CompactTaskRow';
 import { GlobalQuickTaskForm } from '@/components/tasks/GlobalQuickTaskForm';
 import { TaskFiltersBar } from '@/components/tasks/TaskFiltersBar';
@@ -9,6 +10,7 @@ import { cn } from '@/lib/ui/cn';
 
 const TABS: Array<{ focus: TaskFocus; label: string; countKey: keyof Counts }> = [
   { focus: 'open', label: 'Открытые', countKey: 'open' },
+  { focus: 'mine', label: 'Мои', countKey: 'mine' },
   { focus: 'today', label: 'Сегодня', countKey: 'today' },
   { focus: 'in_progress', label: 'В работе', countKey: 'inProgress' },
   { focus: 'done', label: 'Выполненные', countKey: 'done' },
@@ -16,6 +18,7 @@ const TABS: Array<{ focus: TaskFocus; label: string; countKey: keyof Counts }> =
 
 type Counts = {
   open: number;
+  mine: number;
   today: number;
   inProgress: number;
   done: number;
@@ -67,20 +70,20 @@ export default async function TasksPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = await searchParams;
-  const data = await getTasksPageData(params);
+  const session = await requireUserSession();
+  const data = await getTasksPageData(params, { currentUserId: session.userId });
   const now = new Date();
   const focus = data.filters.focus || 'open';
 
   const counts: Counts = {
     open: data.items.filter((i) => i.status === 'TODO' || i.status === 'IN_PROGRESS').length,
-    today:
-      data.summary.today +
-      data.summary.overdue,
+    mine: data.summary.mine,
+    today: data.summary.today + data.summary.overdue,
     inProgress: data.summary.inProgress,
     done: data.summary.done,
   };
 
-  const showGrouped = focus === 'open';
+  const showGrouped = focus === 'open' || focus === 'mine';
   const grouped = showGrouped
     ? groupOpenTasks(
         data.filteredItems.filter((i) => i.status === 'TODO' || i.status === 'IN_PROGRESS'),
@@ -126,6 +129,7 @@ export default async function TasksPage({
             filters={data.filters}
             websites={data.websites}
             groups={data.groups}
+            users={data.users}
           />
         </div>
       </details>

@@ -39,9 +39,11 @@ function assertNoSecrets(value: unknown, label: string) {
 
 async function main() {
   const session = {
+    userId: 'script-admin',
     email: 'acceptance@local',
-    scope: 'admin' as const,
-    exp: Math.floor(Date.now() / 1000) + 3600,
+    name: 'Acceptance',
+    role: 'ADMIN' as const,
+    mustChangePassword: false,
   };
 
   const config = requireDsdClientConfig();

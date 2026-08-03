@@ -5,6 +5,7 @@ import type { WebsiteOption } from '@/lib/tasks/types';
 
 const FOCUS_OPTIONS: Array<{ value: TaskFocus; label: string }> = [
   { value: 'open', label: 'Все открытые' },
+  { value: 'mine', label: 'Мои' },
   { value: 'overdue', label: 'Просроченные' },
   { value: 'today', label: 'Сегодня' },
   { value: 'upcoming', label: 'Ближайшие' },
@@ -18,10 +19,12 @@ export function TaskFiltersBar({
   filters,
   websites,
   groups,
+  users = [],
 }: {
   filters: TaskFilters;
   websites: WebsiteOption[];
   groups: string[];
+  users?: Array<{ id: string; name: string; email: string }>;
 }) {
   return (
     <form method="get" action="/tasks" className="space-y-3 rounded border border-ink-700 bg-white p-4">
@@ -105,6 +108,36 @@ export function TaskFiltersBar({
             {Object.entries(TASK_STATUS_LABELS).map(([value, label]) => (
               <option key={value} value={value}>
                 {label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="block text-sm text-ink-200">
+          Исполнитель
+          <select
+            name="assignedToUserId"
+            defaultValue={filters.assignedToUserId}
+            className="mt-1 w-full rounded border border-ink-700 bg-white px-3 py-2 text-ink-50"
+          >
+            <option value="">Любой</option>
+            {users.map((user) => (
+              <option key={user.id} value={user.id}>
+                {user.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="block text-sm text-ink-200">
+          Автор
+          <select
+            name="createdByUserId"
+            defaultValue={filters.createdByUserId}
+            className="mt-1 w-full rounded border border-ink-700 bg-white px-3 py-2 text-ink-50"
+          >
+            <option value="">Любой</option>
+            {users.map((user) => (
+              <option key={user.id} value={user.id}>
+                {user.name}
               </option>
             ))}
           </select>

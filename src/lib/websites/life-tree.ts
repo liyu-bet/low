@@ -30,6 +30,7 @@ export type WebsiteLifeNode = {
   source: 'automatic' | 'manual';
   status?: 'completed' | 'in_progress' | 'planned';
   href?: string;
+  actorLabel?: string | null;
 };
 
 export type LifeTreeTask = {
@@ -40,6 +41,7 @@ export type LifeTreeTask = {
   dueAt: Date | null;
   completedAt: Date | null;
   createdAt: Date;
+  actorLabel?: string | null;
 };
 
 export type LifeTreeEvent = {
@@ -50,6 +52,7 @@ export type LifeTreeEvent = {
   description: string | null;
   source: EventSource;
   occurredAt: Date;
+  actorLabel?: string | null;
 };
 
 const MILESTONE_EVENT_TYPES = new Set([
@@ -136,6 +139,7 @@ export function buildWebsiteLifeTree(input: {
       description: task.description,
       source: 'manual',
       status: 'completed',
+      actorLabel: task.actorLabel,
     });
   }
 
@@ -151,6 +155,7 @@ export function buildWebsiteLifeTree(input: {
       description: event.description,
       source: 'manual',
       status: 'completed',
+      actorLabel: event.actorLabel,
     });
   }
 
@@ -167,6 +172,7 @@ export function buildWebsiteLifeTree(input: {
       description: task.description,
       source: 'manual' as const,
       status: task.status === 'IN_PROGRESS' ? ('in_progress' as const) : ('planned' as const),
+      actorLabel: task.actorLabel,
     }));
 
   return { past, future };
@@ -191,7 +197,6 @@ function milestoneTitle(key: string): string {
   }
 }
 
-/** Serializable life-tree node for client UI (ISO dates). */
 export type LifeTreeNodeView = {
   id: string;
   kind: WebsiteLifeNodeKind;
@@ -200,6 +205,7 @@ export type LifeTreeNodeView = {
   description?: string | null;
   source: 'automatic' | 'manual';
   status?: 'completed' | 'in_progress' | 'planned';
+  actorLabel?: string | null;
 };
 
 export function toLifeTreeNodeViews(nodes: WebsiteLifeNode[]): LifeTreeNodeView[] {
@@ -211,5 +217,6 @@ export function toLifeTreeNodeViews(nodes: WebsiteLifeNode[]): LifeTreeNodeView[
     description: n.description,
     source: n.source,
     status: n.status,
+    actorLabel: n.actorLabel,
   }));
 }

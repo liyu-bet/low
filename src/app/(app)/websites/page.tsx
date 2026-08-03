@@ -1,3 +1,4 @@
+import { requireUserSession } from '@/app/login/actions';
 import { getWebsitesWorkspace } from '@/lib/websites/workspace';
 import { toMilestoneRailItems } from '@/lib/websites/milestones';
 import { WebsitesWorkspace } from '@/components/websites/WebsitesWorkspace';
@@ -7,6 +8,7 @@ export default async function WebsitesPage({
 }: {
   searchParams: Promise<{ archived?: string }>;
 }) {
+  const session = await requireUserSession();
   const params = await searchParams;
   const includeArchived = params.archived === '1';
   const data = await getWebsitesWorkspace({ includeArchived });
@@ -43,7 +45,12 @@ export default async function WebsitesPage({
   return (
     <div className="space-y-5">
       <h1 className="text-2xl font-semibold text-ink-50 sm:text-3xl">Сайты</h1>
-      <WebsitesWorkspace rows={rows} groups={data.groups} includeArchived={includeArchived} />
+      <WebsitesWorkspace
+        rows={rows}
+        groups={data.groups}
+        includeArchived={includeArchived}
+        canManage={session.role === 'ADMIN'}
+      />
     </div>
   );
 }

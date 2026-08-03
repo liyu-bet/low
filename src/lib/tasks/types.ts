@@ -9,7 +9,8 @@ export type TaskFocus =
   | 'no_due'
   | 'in_progress'
   | 'done'
-  | 'canceled';
+  | 'canceled'
+  | 'mine';
 
 export type TaskFilters = {
   focus: TaskFocus;
@@ -19,6 +20,10 @@ export type TaskFilters = {
   priority: '' | TaskPriority;
   status: '' | TaskStatus;
   action: '' | 'create';
+  assignedToUserId: string;
+  createdByUserId: string;
+  /** Injected for "mine" tab — not from URL. */
+  currentUserId?: string;
 };
 
 export type TaskSummary = {
@@ -28,6 +33,13 @@ export type TaskSummary = {
   noDue: number;
   inProgress: number;
   done: number;
+  mine: number;
+};
+
+export type TaskUserRef = {
+  id: string;
+  name: string;
+  email: string;
 };
 
 export type TaskListItem = {
@@ -45,6 +57,12 @@ export type TaskListItem = {
   dueBucket: TaskDueBucket;
   dueRelative: string;
   daysUntil: number | null;
+  createdByUserId: string | null;
+  assignedToUserId: string | null;
+  completedByUserId: string | null;
+  createdByLabel: string;
+  assignedToLabel: string | null;
+  completedByLabel: string | null;
   website: {
     id: string;
     domain: string;
@@ -68,6 +86,7 @@ export type TasksPageData = {
   filters: TaskFilters;
   websites: WebsiteOption[];
   groups: string[];
+  users: Array<{ id: string; name: string; email: string }>;
 };
 
 export type WebsiteTasksBlockData = {

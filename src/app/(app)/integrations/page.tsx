@@ -1,3 +1,4 @@
+import { requireAdminSession } from '@/app/login/actions';
 import { formatDateTimeRu, labelSyncRunStatus } from '@/lib/ui/labels';
 import { isDsdConfigured } from '@/lib/dsd/config';
 import { getLatestDsdSyncRun } from '@/lib/dsd/sync';
@@ -78,6 +79,7 @@ function presenceClass(presence: 'online' | 'stale' | 'offline') {
 }
 
 export default async function IntegrationsPage() {
+  await requireAdminSession();
   const dsdConfigured = isDsdConfigured();
   const gscConfigured = isGscConfigured();
   const gscBaseUrl = getGscBaseUrlForDisplay();

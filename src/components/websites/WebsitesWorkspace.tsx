@@ -100,10 +100,12 @@ export function WebsitesWorkspace({
   rows,
   groups,
   includeArchived,
+  canManage = true,
 }: {
   rows: WebsiteWorkspaceClientRow[];
   groups: string[];
   includeArchived: boolean;
+  canManage?: boolean;
 }) {
   const [query, setQuery] = useState('');
   const deferredQuery = useDeferredValue(query);
@@ -166,9 +168,11 @@ export function WebsitesWorkspace({
           placeholder="Поиск по домену, названию, группе, тегам…"
           className="min-w-0 flex-1 rounded-lg border-2 border-ink-600 bg-white px-4 py-3 text-base text-ink-50 placeholder:text-ink-200 focus:border-moss-500 focus:outline-none sm:min-w-[16rem]"
         />
-        <Link href="/websites/new" className="btn-primary shrink-0">
-          Добавить сайт
-        </Link>
+        {canManage ? (
+          <Link href="/websites/new" className="btn-primary shrink-0">
+            Добавить сайт
+          </Link>
+        ) : null}
         <button
           type="button"
           onClick={() => setFiltersOpen((v) => !v)}
@@ -176,16 +180,18 @@ export function WebsitesWorkspace({
         >
           Фильтры
         </button>
-        <button
-          type="button"
-          onClick={() => {
-            setBulkMode((v) => !v);
-            setSelected(new Set());
-          }}
-          className="btn-secondary shrink-0"
-        >
-          {bulkMode ? 'Отмена выбора' : 'Выбрать'}
-        </button>
+        {canManage ? (
+          <button
+            type="button"
+            onClick={() => {
+              setBulkMode((v) => !v);
+              setSelected(new Set());
+            }}
+            className="btn-secondary shrink-0"
+          >
+            {bulkMode ? 'Отмена выбора' : 'Выбрать'}
+          </button>
+        ) : null}
       </div>
 
       {filtersOpen ? (

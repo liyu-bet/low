@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { ZodError } from 'zod';
 import { requireAdminSession } from '@/app/login/actions';
-import { assertAuthenticated } from '@/lib/auth/session';
+import { assertAuthenticated, authorSnapshot } from '@/lib/auth/session';
 import {
   bulkAddTagsFromForm,
   bulkArchiveWebsitesFromForm,
@@ -60,7 +60,7 @@ async function runBulk(
   formData: FormData,
   runner: (
     formData: FormData,
-    options: { createdBy: string },
+    options: { createdBy: string; createdByUserId?: string | null },
   ) => Promise<BulkOperationResult>,
   options?: { clearSelectionOnSuccess?: boolean; revalidateTasks?: boolean },
 ): Promise<BulkActionState> {
@@ -68,7 +68,10 @@ async function runBulk(
   assertAuthenticated(session);
   const websiteIds = parseWebsiteIds(formData);
   try {
-    const result = await runner(formData, { createdBy: session.email });
+    const result = await runner(formData, {
+      createdBy: authorSnapshot(session),
+      createdByUserId: session.userId,
+    });
     revalidateBulkPaths(websiteIds);
     if (options?.revalidateTasks) revalidatePath('/tasks');
     return {

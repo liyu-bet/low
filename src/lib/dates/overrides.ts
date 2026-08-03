@@ -115,7 +115,7 @@ export function planDateOverrideClear(website: Website, raw: unknown): DateOverr
 async function applyPlan(
   websiteId: string,
   plan: DateOverridePlan,
-  options?: { createdBy?: string },
+  options?: { createdBy?: string; createdByUserId?: string | null },
 ): Promise<{ website: Website; event: WebsiteEvent }> {
   const occurredAt = new Date();
 
@@ -137,6 +137,7 @@ async function applyPlan(
         dedupeKey: null,
         occurredAt,
         createdBy: options?.createdBy ?? 'admin',
+        createdByUserId: options?.createdByUserId ?? null,
         metadata: plan.metadata,
       },
     });
@@ -148,7 +149,7 @@ async function applyPlan(
 export async function setDateOverride(
   websiteId: string,
   raw: unknown,
-  options?: { createdBy?: string },
+  options?: { createdBy?: string; createdByUserId?: string | null },
 ): Promise<{ website: Website; event: WebsiteEvent }> {
   const website = await getWebsiteById(websiteId);
   const plan = planDateOverrideSet(website, raw);
@@ -158,7 +159,7 @@ export async function setDateOverride(
 export async function clearDateOverride(
   websiteId: string,
   raw: unknown,
-  options?: { createdBy?: string },
+  options?: { createdBy?: string; createdByUserId?: string | null },
 ): Promise<{ website: Website; event: WebsiteEvent }> {
   const website = await getWebsiteById(websiteId);
   const plan = planDateOverrideClear(website, raw);

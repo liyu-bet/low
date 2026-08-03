@@ -9,10 +9,12 @@ export function WebsiteNextTasks({
   websiteId,
   archived,
   openTasks,
+  assignees = [],
 }: {
   websiteId: string;
   archived: boolean;
   openTasks: TaskListItem[];
+  assignees?: Array<{ id: string; name: string; email: string }>;
 }) {
   const visible = openTasks.slice(0, MAX_VISIBLE);
   const hasMore = openTasks.length > MAX_VISIBLE;
@@ -30,7 +32,7 @@ export function WebsiteNextTasks({
       </div>
 
       {!archived ? (
-        <QuickWebsiteTaskForm websiteId={websiteId} />
+        <QuickWebsiteTaskForm websiteId={websiteId} assignees={assignees} />
       ) : (
         <p className="text-sm text-ink-200">Архивный сайт: новые задачи не создаются.</p>
       )}

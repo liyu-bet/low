@@ -3,18 +3,34 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import {
+  assertAdmin,
+  assertAuthenticated,
+  authorSnapshot,
   createSessionToken,
   getSessionCookieName,
   getSessionCookieOptions,
-  verifyAdminCredentials,
+  type UserSession,
   verifySessionToken,
 } from '@/lib/auth/session';
+import { authenticateUser, resolveSessionUser } from '@/lib/auth/users';
 
 export type LoginState = {
   error?: string;
   ok?: boolean;
   redirectTo?: string;
 };
+
+async function setSessionCookie(user: {
+  id: string;
+  sessionVersion: number;
+}): Promise<void> {
+  const token = await createSessionToken({
+    userId: user.id,
+    sessionVersion: user.sessionVersion,
+  });
+  const cookieStore = await cookies();
+  cookieStore.set(getSessionCookieName(), token, getSessionCookieOptions());
+}
 
 export async function loginAction(
   _prev: LoginState,
@@ -24,18 +40,22 @@ export async function loginAction(
   const password = String(formData.get('password') ?? '');
   const nextPath = String(formData.get('next') ?? '/websites');
 
-  if (!verifyAdminCredentials(email, password)) {
+  const result = await authenticateUser(email, password);
+  if (!result.ok) {
+    if (result.reason === 'inactive') {
+      return { error: 'Учётная запись отключена' };
+    }
     return { error: 'Неверный email или пароль' };
   }
 
-  const token = await createSessionToken(email.trim().toLowerCase());
-  const cookieStore = await cookies();
-  cookieStore.set(getSessionCookieName(), token, getSessionCookieOptions());
+  await setSessionCookie(result.user);
+
+  if (result.user.mustChangePassword) {
+    return { ok: true, redirectTo: '/account/password' };
+  }
 
   const safeNext =
     nextPath.startsWith('/') && !nextPath.startsWith('//') ? nextPath : '/websites';
-
-  // Do not call redirect() here: with useActionState it surfaces as a client error in Next 15.
   return { ok: true, redirectTo: safeNext };
 }
 
@@ -48,12 +68,53 @@ export async function logoutAction(): Promise<void> {
   redirect('/login');
 }
 
-export async function requireAdminSession() {
+export async function getOptionalUserSession(): Promise<UserSession | null> {
   const cookieStore = await cookies();
   const token = cookieStore.get(getSessionCookieName())?.value;
-  const session = await verifySessionToken(token);
+  const payload = await verifySessionToken(token);
+  if (!payload) return null;
+
+  const user = await resolveSessionUser({
+    userId: payload.userId,
+    sessionVersion: payload.sessionVersion,
+  });
+  if (!user) return null;
+
+  return {
+    userId: user.id,
+    email: user.email,
+    name: user.name,
+    role: user.role,
+    mustChangePassword: user.mustChangePassword,
+  };
+}
+
+export async function requireUserSession(options?: {
+  allowMustChangePassword?: boolean;
+}): Promise<UserSession> {
+  const session = await getOptionalUserSession();
   if (!session) {
     redirect('/login');
   }
+  if (session.mustChangePassword && !options?.allowMustChangePassword) {
+    redirect('/account/password');
+  }
   return session;
 }
+
+/** Requires authenticated ADMIN. */
+export async function requireAdminSession(): Promise<UserSession> {
+  const session = await requireUserSession();
+  assertAdmin(session);
+  return session;
+}
+
+/** Re-issue cookie after password change (new sessionVersion). */
+export async function refreshSessionCookie(user: {
+  id: string;
+  sessionVersion: number;
+}): Promise<void> {
+  await setSessionCookie(user);
+}
+
+export { assertAuthenticated, assertAdmin, authorSnapshot };

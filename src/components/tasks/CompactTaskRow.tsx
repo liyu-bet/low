@@ -76,6 +76,20 @@ export function CompactTaskRow({
             </span>
             <span className="mx-1.5 text-ink-700">·</span>
             {labelTaskStatus(item.status)}
+            <span className="mx-1.5 text-ink-700">·</span>
+            Создал: {item.createdByLabel}
+            {item.status === 'DONE' && item.completedByLabel ? (
+              <>
+                <span className="mx-1.5 text-ink-700">·</span>
+                Выполнил: {item.completedByLabel}
+              </>
+            ) : null}
+            {item.assignedToLabel && item.status !== 'DONE' ? (
+              <>
+                <span className="mx-1.5 text-ink-700">·</span>
+                Исполнитель: {item.assignedToLabel}
+              </>
+            ) : null}
           </p>
         </div>
         {open ? (

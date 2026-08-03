@@ -5,9 +5,11 @@ import { labelLifecycleStage, labelWebsiteStatus } from '@/lib/ui/labels';
 export function WebsiteProfileHeader({
   website,
   openUrl,
+  showSettings = true,
 }: {
   website: Website;
   openUrl: string;
+  showSettings?: boolean;
 }) {
   return (
     <section className="space-y-3">
@@ -43,12 +45,14 @@ export function WebsiteProfileHeader({
           >
             Открыть сайт
           </a>
-          <a
-            href="#settings"
-            className="rounded border border-ink-700 px-3 py-2 text-sm text-ink-100 hover:border-moss-500"
-          >
-            Настройки
-          </a>
+          {showSettings ? (
+            <a
+              href="#settings"
+              className="rounded border border-ink-700 px-3 py-2 text-sm text-ink-100 hover:border-moss-500"
+            >
+              Настройки
+            </a>
+          ) : null}
         </div>
       </div>
     </section>

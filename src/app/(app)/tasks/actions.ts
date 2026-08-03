@@ -2,13 +2,15 @@
 
 import { revalidatePath } from 'next/cache';
 import { ZodError } from 'zod';
-import { requireAdminSession } from '@/app/login/actions';
-import { assertAuthenticated } from '@/lib/auth/session';
+import { requireUserSession } from '@/app/login/actions';
+import { authorSnapshot, ForbiddenError, type UserSession } from '@/lib/auth/session';
+import { assertCanEditTask } from '@/lib/auth/permissions';
 import { isWebsiteNotFoundError } from '@/lib/events/service';
 import {
   cancelWebsiteTask,
   completeWebsiteTaskFromForm,
   createWebsiteTaskFromForm,
+  getWebsiteTaskAuthFields,
   isTaskNotFoundError,
   isTaskStateError,
   startWebsiteTask,
@@ -27,6 +29,7 @@ function mapError(error: unknown): string {
   if (isWebsiteNotFoundError(error)) return 'Сайт не найден';
   if (isTaskNotFoundError(error)) return 'Задача не найдена';
   if (isTaskStateError(error)) return error.message;
+  if (error instanceof ForbiddenError) return error.message;
   if (error instanceof ZodError) {
     return error.errors.map((issue) => issue.message).join('; ');
   }
@@ -41,14 +44,32 @@ function revalidateTaskPaths(websiteId: string) {
   revalidatePath('/websites');
 }
 
+function actorFromSession(session: { userId: string; name: string; email: string }) {
+  return { userId: session.userId, label: authorSnapshot(session) };
+}
+
+async function requireEditableTask(
+  taskId: string,
+  session: UserSession,
+) {
+  const task = await getWebsiteTaskAuthFields(taskId);
+  if (!task) throw new Error('Задача не найдена');
+  assertCanEditTask(session, task);
+  return task;
+}
+
 export async function createTaskAction(
   _prev: TaskActionState,
   formData: FormData,
 ): Promise<TaskActionState> {
-  const session = await requireAdminSession();
-  assertAuthenticated(session);
+  const session = await requireUserSession();
   try {
-    const task = await createWebsiteTaskFromForm(formData, { createdBy: session.email });
+    // Strip forged author fields from the browser.
+    formData.delete('createdBy');
+    formData.delete('createdByUserId');
+    const task = await createWebsiteTaskFromForm(formData, {
+      actor: actorFromSession(session),
+    });
     revalidateTaskPaths(task.websiteId);
     return {
       ok: true,
@@ -67,10 +88,14 @@ export async function updateTaskAction(
   _prev: TaskActionState,
   formData: FormData,
 ): Promise<TaskActionState> {
-  const session = await requireAdminSession();
-  assertAuthenticated(session);
+  const session = await requireUserSession();
   try {
-    const task = await updateWebsiteTaskFromForm(taskId, formData);
+    await requireEditableTask(taskId, session);
+    formData.delete('createdBy');
+    formData.delete('createdByUserId');
+    const task = await updateWebsiteTaskFromForm(taskId, formData, {
+      actorUserId: session.userId,
+    });
     revalidateTaskPaths(task.websiteId || websiteId);
     return { ok: true, message: 'Задача обновлена', taskId: task.id, websiteId: task.websiteId };
   } catch (error) {
@@ -84,9 +109,9 @@ export async function startTaskAction(
   _prev: TaskActionState,
   _formData: FormData,
 ): Promise<TaskActionState> {
-  const session = await requireAdminSession();
-  assertAuthenticated(session);
+  const session = await requireUserSession();
   try {
+    await requireEditableTask(taskId, session);
     const task = await startWebsiteTask(taskId);
     revalidateTaskPaths(task.websiteId || websiteId);
     return { ok: true, message: 'Задача в работе', taskId: task.id, websiteId: task.websiteId };
@@ -101,11 +126,11 @@ export async function completeTaskAction(
   _prev: TaskActionState,
   formData: FormData,
 ): Promise<TaskActionState> {
-  const session = await requireAdminSession();
-  assertAuthenticated(session);
+  const session = await requireUserSession();
   try {
+    await requireEditableTask(taskId, session);
     const result = await completeWebsiteTaskFromForm(taskId, formData, {
-      createdBy: session.email,
+      actor: actorFromSession(session),
     });
     revalidateTaskPaths(result.task.websiteId || websiteId);
     return {
@@ -127,9 +152,9 @@ export async function cancelTaskAction(
   _prev: TaskActionState,
   _formData: FormData,
 ): Promise<TaskActionState> {
-  const session = await requireAdminSession();
-  assertAuthenticated(session);
+  const session = await requireUserSession();
   try {
+    await requireEditableTask(taskId, session);
     const task = await cancelWebsiteTask(taskId);
     revalidateTaskPaths(task.websiteId || websiteId);
     return { ok: true, message: 'Задача отменена', taskId: task.id, websiteId: task.websiteId };

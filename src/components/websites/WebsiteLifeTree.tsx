@@ -55,6 +55,12 @@ function NodeList({
             <p className="text-xs text-ink-200">
               {node.date ? formatDateRu(new Date(node.date)) : 'Без срока'}
               <span className="mx-1.5 text-ink-700">·</span>
+              {node.actorLabel ? (
+                <>
+                  {node.actorLabel}
+                  <span className="mx-1.5 text-ink-700">·</span>
+                </>
+              ) : null}
               {kindLabel(node.kind)}
               {node.status === 'in_progress' ? (
                 <span className="ml-1.5 text-amber-800">в работе</span>

@@ -43,9 +43,9 @@ LOW does **not** replace DSD or GSC. It correlates lifecycle facts and work hist
 - Zod
 - Docker Compose
 - Separate worker process
-- Cookie-based single-admin authentication
+- Cookie-based multi-user authentication (PostgreSQL `User` table)
 
-**Out of scope for LOW v1:** Redis, queues, multi-user roles, AI features, notifications, finance, search-rank tracking, and duplicate uptime monitoring (availability comes from DSD).
+**Out of scope for LOW v1:** Redis, queues, OAuth/external IdP, complex RBAC, AI features, notifications, finance, search-rank tracking, and duplicate uptime monitoring (availability comes from DSD).
 
 ## 5. Domain model
 
@@ -149,12 +149,16 @@ Must:
 
 `normalizedDomain` is the only key used to match DSD/GSC entities by domain.
 
-## 7. Auth (iteration 1)
+## 7. Auth
 
-- Single administrator via `ADMIN_EMAIL` + `ADMIN_PASSWORD`.
-- HMAC-signed session cookie (`SESSION_SECRET`).
-- Cookie flags: `httpOnly`, `sameSite=lax`, `secure` only in production.
-- No multi-user roles.
+- Local users in PostgreSQL (`User`): `ADMIN` | `MEMBER`.
+- Passwords: Node.js `crypto.scrypt` with versioned hash format; never plaintext.
+- Users are disabled (`isActive=false`), not deleted.
+- Session cookie payload: `userId`, `sessionVersion`, `exp` (HMAC with `SESSION_SECRET`).
+- `ADMIN_EMAIL` / `ADMIN_PASSWORD` bootstrap the first ADMIN only when User table is empty.
+- Tasks/events keep legacy `createdBy` string snapshot plus optional `createdByUserId`.
+- ADMIN: users, website settings/archive, bulk ops, integrations/manual sync.
+- MEMBER: view sites/reports, create/complete tasks, edit own/assigned tasks, manual work notes.
 
 ## 8. Integrations
 
@@ -211,7 +215,7 @@ Separate Node process (`npm run worker:start` / Compose service `worker`):
 
 1. App skeleton + Docker Compose
 2. Prisma schema
-3. Single-admin auth
+3. Multi-user auth (ADMIN/MEMBER) + task/event authorship
 4. Website CRUD + soft archive
 5. Domain normalization + tests
 6. Websites table UI + bulk operations

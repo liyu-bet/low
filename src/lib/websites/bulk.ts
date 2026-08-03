@@ -134,7 +134,7 @@ async function loadWebsitesOrThrow(ids: string[]): Promise<Website[]> {
 
 export async function bulkSetGroup(
   raw: unknown,
-  options: { createdBy: string },
+  options: { createdBy: string; createdByUserId?: string | null },
 ): Promise<BulkOperationResult> {
   const input = bulkSetGroupSchema.parse(raw);
   const ids = input.websiteIds;
@@ -169,6 +169,7 @@ export async function bulkSetGroup(
             : 'Группа очищена',
           occurredAt: new Date(),
           createdBy: options.createdBy,
+          createdByUserId: options.createdByUserId ?? null,
           metadata: {
             previousGroup,
             newGroup,
@@ -185,7 +186,7 @@ export async function bulkSetGroup(
 
 export async function bulkAddTags(
   raw: unknown,
-  options: { createdBy: string },
+  options: { createdBy: string; createdByUserId?: string | null },
 ): Promise<BulkOperationResult> {
   const input = bulkAddTagsSchema.parse(raw);
   const websites = await loadWebsitesOrThrow(input.websiteIds);
@@ -219,6 +220,7 @@ export async function bulkAddTags(
           description: `Добавлены теги: ${addedTags.join(', ')}`,
           occurredAt: new Date(),
           createdBy: options.createdBy,
+          createdByUserId: options.createdByUserId ?? null,
           metadata: {
             previousTags,
             addedTags,
@@ -237,7 +239,7 @@ export async function bulkAddTags(
 
 export async function bulkRemoveTags(
   raw: unknown,
-  options: { createdBy: string },
+  options: { createdBy: string; createdByUserId?: string | null },
 ): Promise<BulkOperationResult> {
   const input = bulkRemoveTagsSchema.parse(raw);
   const websites = await loadWebsitesOrThrow(input.websiteIds);
@@ -271,6 +273,7 @@ export async function bulkRemoveTags(
           description: `Удалены теги: ${removedTags.join(', ')}`,
           occurredAt: new Date(),
           createdBy: options.createdBy,
+          createdByUserId: options.createdByUserId ?? null,
           metadata: {
             previousTags,
             addedTags: [],
@@ -289,7 +292,7 @@ export async function bulkRemoveTags(
 
 export async function bulkSetStatus(
   raw: unknown,
-  options: { createdBy: string },
+  options: { createdBy: string; createdByUserId?: string | null },
 ): Promise<BulkOperationResult> {
   const input = bulkSetStatusSchema.parse(raw);
   const websites = await loadWebsitesOrThrow(input.websiteIds);
@@ -317,6 +320,7 @@ export async function bulkSetStatus(
           description: `Статус: ${website.status} → ${input.status}`,
           occurredAt: new Date(),
           createdBy: options.createdBy,
+          createdByUserId: options.createdByUserId ?? null,
           metadata: {
             previousStatus: website.status,
             newStatus: input.status,
@@ -333,7 +337,7 @@ export async function bulkSetStatus(
 
 export async function bulkSetLifecycleStage(
   raw: unknown,
-  options: { createdBy: string },
+  options: { createdBy: string; createdByUserId?: string | null },
 ): Promise<BulkOperationResult> {
   const input = bulkSetLifecycleStageSchema.parse(raw);
   const websites = await loadWebsitesOrThrow(input.websiteIds);
@@ -361,6 +365,7 @@ export async function bulkSetLifecycleStage(
           description: `Этап: ${website.lifecycleStage} → ${input.lifecycleStage}`,
           occurredAt: new Date(),
           createdBy: options.createdBy,
+          createdByUserId: options.createdByUserId ?? null,
           metadata: {
             previousLifecycleStage: website.lifecycleStage,
             newLifecycleStage: input.lifecycleStage,
@@ -377,7 +382,7 @@ export async function bulkSetLifecycleStage(
 
 export async function bulkCreateTasks(
   raw: unknown,
-  options: { createdBy: string },
+  options: { createdBy: string; createdByUserId?: string | null },
 ): Promise<BulkOperationResult> {
   const input = bulkCreateTasksSchema.parse(raw);
   const websites = await loadWebsitesOrThrow(input.websiteIds);
@@ -406,6 +411,8 @@ export async function bulkCreateTasks(
           priority: input.priority,
           dueAt: input.dueAt,
           createdBy: options.createdBy,
+          createdByUserId: options.createdByUserId ?? null,
+          assignedToUserId: options.createdByUserId ?? null,
         },
       });
       result.created! += 1;
@@ -419,7 +426,7 @@ export async function bulkCreateTasks(
 
 export async function bulkRecordWork(
   raw: unknown,
-  options: { createdBy: string },
+  options: { createdBy: string; createdByUserId?: string | null },
 ): Promise<BulkOperationResult> {
   const input = bulkRecordWorkSchema.parse(raw);
   const websites = await loadWebsitesOrThrow(input.websiteIds);
@@ -443,6 +450,7 @@ export async function bulkRecordWork(
             description: input.description ?? null,
             occurredAt: input.occurredAt,
             createdBy: options.createdBy,
+          createdByUserId: options.createdByUserId ?? null,
             dedupeKey,
             metadata: {
               bulk: true,
@@ -477,7 +485,7 @@ export async function bulkRecordWork(
 
 export async function bulkArchiveWebsites(
   raw: unknown,
-  options: { createdBy: string },
+  options: { createdBy: string; createdByUserId?: string | null },
 ): Promise<BulkOperationResult> {
   const input = bulkArchiveSchema.parse(raw);
   const websites = await loadWebsitesOrThrow(input.websiteIds);
@@ -512,6 +520,7 @@ export async function bulkArchiveWebsites(
           description: 'Сайт перенесён в архив массовой операцией',
           occurredAt: now,
           createdBy: options.createdBy,
+          createdByUserId: options.createdByUserId ?? null,
           metadata: {
             bulk: true,
             previousStatus: website.status,
@@ -528,56 +537,56 @@ export async function bulkArchiveWebsites(
 
 export async function bulkSetGroupFromForm(
   formData: FormData,
-  options: { createdBy: string },
+  options: { createdBy: string; createdByUserId?: string | null },
 ) {
   return bulkSetGroup(formDataToObject(formData), options);
 }
 
 export async function bulkAddTagsFromForm(
   formData: FormData,
-  options: { createdBy: string },
+  options: { createdBy: string; createdByUserId?: string | null },
 ) {
   return bulkAddTags(formDataToObject(formData), options);
 }
 
 export async function bulkRemoveTagsFromForm(
   formData: FormData,
-  options: { createdBy: string },
+  options: { createdBy: string; createdByUserId?: string | null },
 ) {
   return bulkRemoveTags(formDataToObject(formData), options);
 }
 
 export async function bulkSetStatusFromForm(
   formData: FormData,
-  options: { createdBy: string },
+  options: { createdBy: string; createdByUserId?: string | null },
 ) {
   return bulkSetStatus(formDataToObject(formData), options);
 }
 
 export async function bulkSetLifecycleStageFromForm(
   formData: FormData,
-  options: { createdBy: string },
+  options: { createdBy: string; createdByUserId?: string | null },
 ) {
   return bulkSetLifecycleStage(formDataToObject(formData), options);
 }
 
 export async function bulkCreateTasksFromForm(
   formData: FormData,
-  options: { createdBy: string },
+  options: { createdBy: string; createdByUserId?: string | null },
 ) {
   return bulkCreateTasks(formDataToObject(formData), options);
 }
 
 export async function bulkRecordWorkFromForm(
   formData: FormData,
-  options: { createdBy: string },
+  options: { createdBy: string; createdByUserId?: string | null },
 ) {
   return bulkRecordWork(formDataToObject(formData), options);
 }
 
 export async function bulkArchiveWebsitesFromForm(
   formData: FormData,
-  options: { createdBy: string },
+  options: { createdBy: string; createdByUserId?: string | null },
 ) {
   return bulkArchiveWebsites(formDataToObject(formData), options);
 }

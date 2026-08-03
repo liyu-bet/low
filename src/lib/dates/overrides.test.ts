@@ -205,9 +205,11 @@ describe('unauthorized date changes', () => {
     assert.throws(() => assertAuthenticated(null), UnauthorizedError);
     assert.doesNotThrow(() =>
       assertAuthenticated({
+        userId: 'u1',
         email: 'admin@example.com',
-        scope: 'admin',
-        exp: Math.floor(Date.now() / 1000) + 60,
+        name: 'Admin',
+        role: 'ADMIN',
+        mustChangePassword: false,
       }),
     );
   });
