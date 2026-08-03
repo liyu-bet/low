@@ -23,7 +23,7 @@ export default async function HomePage() {
         </p>
         <div className="mt-6">
           <Link href="/login" className="btn-primary">
-            Войти как администратор
+            Войти
           </Link>
         </div>
       </div>
