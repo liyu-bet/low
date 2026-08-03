@@ -1,28 +1,10 @@
 import { cn } from '@/lib/ui/cn';
 import {
   formatMilestoneDate,
-  type MilestoneItem,
+  type MilestoneRailItem,
 } from '@/lib/websites/milestones';
 
-export type MilestoneRailItem = {
-  key: string;
-  label: string;
-  shortLabel: string;
-  date: string | null;
-  reached: boolean;
-  isNext: boolean;
-};
-
-export function toMilestoneRailItems(milestones: MilestoneItem[]): MilestoneRailItem[] {
-  return milestones.map((m) => ({
-    key: m.key,
-    label: m.label,
-    shortLabel: m.shortLabel,
-    date: m.date ? m.date.toISOString() : null,
-    reached: m.reached,
-    isNext: m.isNext,
-  }));
-}
+export type { MilestoneRailItem };
 
 export function WebsiteMilestoneRail({
   items,

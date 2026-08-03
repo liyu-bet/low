@@ -4,15 +4,12 @@ import Link from 'next/link';
 import { Fragment, useDeferredValue, useMemo, useState } from 'react';
 import type { LifecycleStage, WebsiteStatus } from '@prisma/client';
 import { QuickWebsiteTaskForm } from '@/components/tasks/QuickWebsiteTaskForm';
-import {
-  toMilestoneRailItems,
-  WebsiteMilestoneRail,
-  type MilestoneRailItem,
-} from '@/components/websites/WebsiteMilestoneRail';
+import { WebsiteMilestoneRail } from '@/components/websites/WebsiteMilestoneRail';
 import { WebsitesBulkPanel } from '@/components/WebsitesBulkPanel';
 import type { WebsiteTableRow } from '@/components/WebsitesTable';
 import { labelLifecycleStage, labelWebsiteStatus } from '@/lib/ui/labels';
 import { cn } from '@/lib/ui/cn';
+import type { MilestoneRailItem } from '@/lib/websites/milestones';
 import type { AvailabilityDot } from '@/lib/websites/workspace';
 
 export type WebsiteWorkspaceClientRow = {
@@ -442,5 +439,3 @@ export function WebsitesWorkspace({
     </div>
   );
 }
-
-export { toMilestoneRailItems };

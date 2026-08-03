@@ -1,8 +1,6 @@
 import { getWebsitesWorkspace } from '@/lib/websites/workspace';
-import {
-  toMilestoneRailItems,
-  WebsitesWorkspace,
-} from '@/components/websites/WebsitesWorkspace';
+import { toMilestoneRailItems } from '@/lib/websites/milestones';
+import { WebsitesWorkspace } from '@/components/websites/WebsitesWorkspace';
 
 export default async function WebsitesPage({
   searchParams,

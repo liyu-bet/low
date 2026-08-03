@@ -117,3 +117,24 @@ export function formatMilestoneDate(date: Date | null): string {
   if (!date) return '—';
   return formatDateOnlyRu(date);
 }
+
+/** Serializable milestone payload for client UI (ISO dates). */
+export type MilestoneRailItem = {
+  key: string;
+  label: string;
+  shortLabel: string;
+  date: string | null;
+  reached: boolean;
+  isNext: boolean;
+};
+
+export function toMilestoneRailItems(milestones: MilestoneItem[]): MilestoneRailItem[] {
+  return milestones.map((m) => ({
+    key: m.key,
+    label: m.label,
+    shortLabel: m.shortLabel,
+    date: m.date ? m.date.toISOString() : null,
+    reached: m.reached,
+    isNext: m.isNext,
+  }));
+}

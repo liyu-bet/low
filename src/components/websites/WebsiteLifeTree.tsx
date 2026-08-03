@@ -1,18 +1,10 @@
 import { formatDateRu } from '@/lib/ui/labels';
 import { cn } from '@/lib/ui/cn';
-import type { WebsiteLifeNode } from '@/lib/websites/life-tree';
+import type { LifeTreeNodeView } from '@/lib/websites/life-tree';
 
-export type LifeTreeNodeView = {
-  id: string;
-  kind: WebsiteLifeNode['kind'];
-  date: string | null;
-  title: string;
-  description?: string | null;
-  source: 'automatic' | 'manual';
-  status?: 'completed' | 'in_progress' | 'planned';
-};
+export type { LifeTreeNodeView };
 
-function kindLabel(kind: WebsiteLifeNode['kind']): string {
+function kindLabel(kind: LifeTreeNodeView['kind']): string {
   switch (kind) {
     case 'milestone':
       return 'Автоматически';
@@ -77,18 +69,6 @@ function NodeList({
       ))}
     </ul>
   );
-}
-
-export function toLifeTreeNodeViews(nodes: WebsiteLifeNode[]): LifeTreeNodeView[] {
-  return nodes.map((n) => ({
-    id: n.id,
-    kind: n.kind,
-    date: n.date ? n.date.toISOString() : null,
-    title: n.title,
-    description: n.description,
-    source: n.source,
-    status: n.status,
-  }));
 }
 
 export function WebsiteLifeTree({

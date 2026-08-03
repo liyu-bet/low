@@ -190,3 +190,26 @@ function milestoneTitle(key: string): string {
       return key;
   }
 }
+
+/** Serializable life-tree node for client UI (ISO dates). */
+export type LifeTreeNodeView = {
+  id: string;
+  kind: WebsiteLifeNodeKind;
+  date: string | null;
+  title: string;
+  description?: string | null;
+  source: 'automatic' | 'manual';
+  status?: 'completed' | 'in_progress' | 'planned';
+};
+
+export function toLifeTreeNodeViews(nodes: WebsiteLifeNode[]): LifeTreeNodeView[] {
+  return nodes.map((n) => ({
+    id: n.id,
+    kind: n.kind,
+    date: n.date ? n.date.toISOString() : null,
+    title: n.title,
+    description: n.description,
+    source: n.source,
+    status: n.status,
+  }));
+}

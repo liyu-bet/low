@@ -12,13 +12,11 @@ import { WebsiteProfileHeader } from '@/components/website-profile/WebsiteProfil
 import { WebsiteSettingsBlock } from '@/components/website-profile/WebsiteSettingsBlock';
 import { WebsiteStatusOverview } from '@/components/website-profile/WebsiteStatusOverview';
 import {
-  toMilestoneRailItems,
   WebsiteMilestoneRail,
 } from '@/components/websites/WebsiteMilestoneRail';
-import {
-  toLifeTreeNodeViews,
-  WebsiteLifeTree,
-} from '@/components/websites/WebsiteLifeTree';
+import { WebsiteLifeTree } from '@/components/websites/WebsiteLifeTree';
+import { toMilestoneRailItems } from '@/lib/websites/milestones';
+import { toLifeTreeNodeViews } from '@/lib/websites/life-tree';
 import {
   getWebsiteProfile,
   isWebsiteProfileNotFoundError,

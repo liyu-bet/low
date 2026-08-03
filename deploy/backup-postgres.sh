@@ -16,10 +16,20 @@ test -f .env
 OUT="${BACKUP_DIR}/low-postgres-${STAMP}.sql.gz"
 echo "Writing backup..."
 
-docker compose -p low-production --env-file .env -f docker-compose.prod.yml \
-  exec -T postgres \
-  sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" --no-owner --no-acl' \
-  | gzip -c > "${OUT}"
+dump_once() {
+  docker compose -p low-production --env-file .env -f docker-compose.prod.yml \
+    exec -T postgres \
+    sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" --no-owner --no-acl' \
+    | gzip -c > "${OUT}"
+}
+
+dump_once
+BYTES="$(wc -c < "${OUT}" | tr -d ' ')"
+if [[ -z "${BYTES}" || "${BYTES}" -lt 100 ]]; then
+  echo "Backup too small (${BYTES:-0} bytes), retrying once..." >&2
+  sleep 2
+  dump_once
+fi
 
 chmod 600 "${OUT}"
 
