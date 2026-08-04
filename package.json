@@ -15,7 +15,9 @@
     "db:deploy": "prisma migrate deploy",
     "postinstall": "prisma generate",
     "test": "tsx --test src/lib/**/*.test.ts",
+    "e2e:seed": "tsx scripts/e2e-seed.ts",
     "test:e2e": "playwright test",
+    "test:e2e:ci": "playwright test --reporter=list,html",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {

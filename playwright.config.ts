@@ -1,6 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
+import { assertSafeE2eBaseUrl } from './src/lib/e2e/guards';
 
-const baseURL = process.env.E2E_BASE_URL ?? 'http://127.0.0.1:8082';
+const baseURL = assertSafeE2eBaseUrl(process.env.E2E_BASE_URL);
 
 export default defineConfig({
   testDir: './e2e',
@@ -8,20 +9,61 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   workers: 1,
-  reporter: 'list',
   timeout: 60_000,
+  expect: { timeout: 10_000 },
+  reporter: process.env.CI
+    ? [['list'], ['html', { open: 'never', outputFolder: 'playwright-report' }]]
+    : [['list']],
   use: {
     baseURL,
-    trace: 'on-first-retry',
+    trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
+    video: 'retain-on-failure',
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  projects: [
+    {
+      name: 'setup-admin',
+      testMatch: /auth\.admin\.setup\.ts/,
+    },
+    {
+      name: 'setup-member',
+      testMatch: /auth\.member\.setup\.ts/,
+    },
+    {
+      name: 'public',
+      testMatch: /public\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'admin',
+      dependencies: ['setup-admin'],
+      testMatch: /(?:responsive|websites|tasks|users)\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: '.playwright/admin.json',
+      },
+    },
+    {
+      name: 'member',
+      dependencies: ['setup-member'],
+      testMatch: /permissions\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: '.playwright/member.json',
+      },
+    },
+  ],
   webServer: process.env.E2E_SKIP_WEBSERVER
     ? undefined
     : {
         command: 'npx next start -p 8082',
         url: `${baseURL}/login`,
         reuseExistingServer: !process.env.CI,
-        timeout: 120_000,
+        timeout: 180_000,
+        env: {
+          ...process.env,
+          NODE_ENV: 'production',
+          PORT: '8082',
+        },
       },
 });

@@ -141,5 +141,6 @@ export function formatDateTimeRu(value: Date | null | undefined): string {
     day: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
+    timeZone: 'UTC',
   });
 }

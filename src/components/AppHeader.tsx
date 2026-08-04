@@ -43,7 +43,9 @@ function MenuPanel({
       )}
       onClick={(event) => {
         const el = event.target as HTMLElement;
-        if (el.closest('a,button[type="submit"]')) onClose();
+        // Close on navigation links only. Keep the panel mounted for
+        // type=submit so server actions / logout redirect can complete.
+        if (el.closest('a')) onClose();
       }}
     >
       {children}

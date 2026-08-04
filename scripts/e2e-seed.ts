@@ -1,0 +1,308 @@
+/**
+ * Deterministic e2e seed for a dedicated PostgreSQL database.
+ * Never targets production. Idempotent for e2e domains/emails only.
+ */
+import { PrismaClient, type Prisma } from '@prisma/client';
+import { hashPassword } from '../src/lib/auth/password';
+import {
+  assertE2eSeedAllowed,
+  E2E_SITES,
+  E2E_USERS,
+} from '../src/lib/e2e/guards';
+
+assertE2eSeedAllowed(process.env);
+
+const prisma = new PrismaClient();
+
+const E2E_EMAILS = [E2E_USERS.admin.email, E2E_USERS.member.email] as const;
+const E2E_DOMAINS = [
+  E2E_SITES.complete.normalizedDomain,
+  E2E_SITES.missingLaunch.normalizedDomain,
+  E2E_SITES.nextStage.normalizedDomain,
+] as const;
+
+function utcDay(isoDate: string): Date {
+  return new Date(`${isoDate}T00:00:00.000Z`);
+}
+
+async function upsertUser(input: {
+  email: string;
+  name: string;
+  password: string;
+  role: 'ADMIN' | 'MEMBER';
+}) {
+  const passwordHash = hashPassword(input.password);
+  return prisma.user.upsert({
+    where: { email: input.email },
+    create: {
+      email: input.email,
+      name: input.name,
+      passwordHash,
+      role: input.role,
+      isActive: true,
+      mustChangePassword: false,
+      sessionVersion: 1,
+    },
+    update: {
+      name: input.name,
+      passwordHash,
+      role: input.role,
+      isActive: true,
+      mustChangePassword: false,
+    },
+  });
+}
+
+async function cleanupE2eData() {
+  // Cascade: delete websites (tasks/events), then e2e users (and any leftover temp users).
+  await prisma.website.deleteMany({
+    where: { normalizedDomain: { in: [...E2E_DOMAINS] } },
+  });
+  await prisma.user.deleteMany({
+    where: {
+      OR: [
+        { email: { in: [...E2E_EMAILS] } },
+        { email: { endsWith: '@e2e-temp.test' } },
+      ],
+    },
+  });
+}
+
+async function createWebsite(
+  data: Prisma.WebsiteCreateInput,
+): Promise<{ id: string; domain: string }> {
+  const website = await prisma.website.create({ data });
+  return { id: website.id, domain: website.domain };
+}
+
+async function main() {
+  console.log('e2e-seed: starting');
+  await cleanupE2eData();
+
+  const admin = await upsertUser({
+    ...E2E_USERS.admin,
+    role: 'ADMIN',
+  });
+  const member = await upsertUser({
+    ...E2E_USERS.member,
+    role: 'MEMBER',
+  });
+
+  const complete = await createWebsite({
+    domain: E2E_SITES.complete.domain,
+    normalizedDomain: E2E_SITES.complete.normalizedDomain,
+    name: E2E_SITES.complete.name,
+    primaryUrl: `https://${E2E_SITES.complete.domain}`,
+    status: 'ACTIVE',
+    lifecycleStage: 'GROWING',
+    group: 'e2e',
+    createdAt: utcDay('2024-01-01'),
+    launchedAt: utcDay('2024-02-01'),
+    firstHealthyAt: utcDay('2024-02-05'),
+    gscFirstSeenAt: utcDay('2024-02-10'),
+    firstImpressionAt: utcDay('2024-03-01'),
+    firstClickAt: utcDay('2024-03-10'),
+    lastWorkAt: utcDay('2024-04-01'),
+  });
+
+  const missingLaunch = await createWebsite({
+    domain: E2E_SITES.missingLaunch.domain,
+    normalizedDomain: E2E_SITES.missingLaunch.normalizedDomain,
+    name: E2E_SITES.missingLaunch.name,
+    primaryUrl: `https://${E2E_SITES.missingLaunch.domain}`,
+    status: 'ACTIVE',
+    lifecycleStage: 'INDEXING',
+    group: 'e2e',
+    createdAt: utcDay('2024-01-15'),
+    launchedAt: null,
+    firstHealthyAt: utcDay('2024-02-20'),
+    gscFirstSeenAt: utcDay('2024-03-01'),
+    firstImpressionAt: utcDay('2024-03-15'),
+    firstClickAt: utcDay('2024-03-20'),
+  });
+
+  const nextStage = await createWebsite({
+    domain: E2E_SITES.nextStage.domain,
+    normalizedDomain: E2E_SITES.nextStage.normalizedDomain,
+    name: E2E_SITES.nextStage.name,
+    primaryUrl: `https://${E2E_SITES.nextStage.domain}`,
+    status: 'ACTIVE',
+    lifecycleStage: 'LAUNCHED',
+    group: 'e2e',
+    createdAt: utcDay('2024-05-01'),
+    launchedAt: utcDay('2024-05-10'),
+    firstHealthyAt: null,
+    gscFirstSeenAt: null,
+    firstImpressionAt: null,
+    firstClickAt: null,
+  });
+
+  // Tasks — keep open list short so profile “next tasks” (max 5) has room for creates.
+  await prisma.websiteTask.createMany({
+    data: [
+      {
+        websiteId: complete.id,
+        title: 'E2E TODO no due',
+        status: 'TODO',
+        priority: 'MEDIUM',
+        createdBy: admin.name,
+        createdByUserId: admin.id,
+        assignedToUserId: admin.id,
+      },
+      {
+        websiteId: complete.id,
+        title: 'E2E TODO with due',
+        status: 'TODO',
+        priority: 'HIGH',
+        dueAt: utcDay('2026-12-31'),
+        createdBy: admin.name,
+        createdByUserId: admin.id,
+        assignedToUserId: admin.id,
+      },
+      {
+        websiteId: complete.id,
+        title: 'E2E DONE by admin',
+        status: 'DONE',
+        priority: 'LOW',
+        completedAt: utcDay('2024-04-02'),
+        createdBy: admin.name,
+        createdByUserId: admin.id,
+        assignedToUserId: admin.id,
+        completedByUserId: admin.id,
+      },
+      {
+        websiteId: complete.id,
+        title: 'E2E assigned to MEMBER',
+        status: 'TODO',
+        priority: 'HIGH',
+        createdBy: admin.name,
+        createdByUserId: admin.id,
+        assignedToUserId: member.id,
+      },
+      {
+        websiteId: nextStage.id,
+        title: 'E2E foreign admin-only task',
+        status: 'TODO',
+        priority: 'MEDIUM',
+        createdBy: admin.name,
+        createdByUserId: admin.id,
+        assignedToUserId: admin.id,
+      },
+      {
+        websiteId: nextStage.id,
+        title: 'E2E IN_PROGRESS task',
+        status: 'IN_PROGRESS',
+        priority: 'MEDIUM',
+        createdBy: admin.name,
+        createdByUserId: admin.id,
+        assignedToUserId: admin.id,
+      },
+      {
+        websiteId: nextStage.id,
+        title: 'E2E MEMBER created open',
+        status: 'TODO',
+        priority: 'MEDIUM',
+        createdBy: member.name,
+        createdByUserId: member.id,
+        assignedToUserId: member.id,
+      },
+      {
+        websiteId: nextStage.id,
+        title: 'E2E ADMIN owned open',
+        status: 'TODO',
+        priority: 'MEDIUM',
+        createdBy: admin.name,
+        createdByUserId: admin.id,
+        assignedToUserId: admin.id,
+      },
+    ],
+  });
+
+  // Events
+  await prisma.websiteEvent.createMany({
+    data: [
+      {
+        websiteId: complete.id,
+        eventType: 'work',
+        category: 'TECHNICAL',
+        title: 'E2E technical work by admin',
+        description: 'Seeded technical work',
+        source: 'MANUAL',
+        occurredAt: utcDay('2024-04-03'),
+        createdBy: admin.name,
+        createdByUserId: admin.id,
+        dedupeKey: 'e2e:complete:tech-work',
+      },
+      {
+        websiteId: complete.id,
+        eventType: 'work',
+        category: 'SEO',
+        title: 'E2E SEO work by member',
+        description: 'Seeded SEO work',
+        source: 'MANUAL',
+        occurredAt: utcDay('2024-04-04'),
+        createdBy: member.name,
+        createdByUserId: member.id,
+        dedupeKey: 'e2e:complete:seo-work',
+      },
+      {
+        websiteId: complete.id,
+        eventType: 'note',
+        category: 'NOTE',
+        title: 'E2E note',
+        description: 'Seeded note',
+        source: 'MANUAL',
+        occurredAt: utcDay('2024-04-05'),
+        createdBy: admin.name,
+        createdByUserId: admin.id,
+        dedupeKey: 'e2e:complete:note',
+      },
+      {
+        websiteId: complete.id,
+        eventType: 'SITE_CREATED',
+        category: 'LIFECYCLE',
+        title: 'Сайт добавлен в LOW',
+        source: 'SYSTEM',
+        sourceSystem: 'SYSTEM',
+        occurredAt: utcDay('2024-01-01'),
+        createdBy: 'SYSTEM',
+        createdByUserId: null,
+        dedupeKey: 'e2e:complete:site-created',
+      },
+      {
+        websiteId: missingLaunch.id,
+        eventType: 'note',
+        category: 'NOTE',
+        title: 'E2E legacy note',
+        description: 'Legacy authorship only',
+        source: 'MANUAL',
+        occurredAt: utcDay('2024-03-21'),
+        createdBy: 'legacy-author@example.test',
+        createdByUserId: null,
+        dedupeKey: 'e2e:missing:legacy-note',
+      },
+    ],
+  });
+
+  console.log(
+    JSON.stringify(
+      {
+        ok: true,
+        admin: admin.email,
+        member: member.email,
+        sites: [complete.domain, missingLaunch.domain, nextStage.domain],
+      },
+      null,
+      2,
+    ),
+  );
+}
+
+main()
+  .catch((error) => {
+    console.error('e2e-seed failed:', error instanceof Error ? error.message : error);
+    process.exitCode = 1;
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });

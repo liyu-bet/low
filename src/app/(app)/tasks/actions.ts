@@ -1,10 +1,10 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { ZodError } from 'zod';
 import { requireUserSession } from '@/app/login/actions';
-import { authorSnapshot, ForbiddenError, type UserSession } from '@/lib/auth/session';
+import { authorSnapshot, type UserSession } from '@/lib/auth/session';
 import { assertCanEditTask } from '@/lib/auth/permissions';
+import { toSafeActionError, toSafeTaskActionError } from '@/lib/errors/safe-action';
 import { isWebsiteNotFoundError } from '@/lib/events/service';
 import {
   cancelWebsiteTask,
@@ -28,13 +28,10 @@ export type TaskActionState = {
 function mapError(error: unknown): string {
   if (isWebsiteNotFoundError(error)) return 'Сайт не найден';
   if (isTaskNotFoundError(error)) return 'Задача не найдена';
-  if (isTaskStateError(error)) return error.message;
-  if (error instanceof ForbiddenError) return error.message;
-  if (error instanceof ZodError) {
-    return error.errors.map((issue) => issue.message).join('; ');
+  if (isTaskStateError(error)) {
+    return toSafeActionError(error, 'Не удалось сохранить изменения');
   }
-  if (error instanceof Error) return error.message;
-  return 'Не удалось выполнить действие с задачей';
+  return toSafeTaskActionError(error);
 }
 
 function revalidateTaskPaths(websiteId: string) {

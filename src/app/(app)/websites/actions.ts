@@ -2,9 +2,9 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { ZodError } from 'zod';
 import { requireAdminSession } from '@/app/login/actions';
 import { authorSnapshot } from '@/lib/auth/session';
+import { toSafeActionError } from '@/lib/errors/safe-action';
 import {
   archiveWebsite,
   createWebsite,
@@ -34,13 +34,7 @@ function mapWebsiteError(error: unknown): string {
   if (isDomainNormalizationError(error)) {
     return error.message;
   }
-  if (error instanceof ZodError) {
-    return error.errors.map((issue) => issue.message).join('; ');
-  }
-  if (error instanceof Error) {
-    return error.message;
-  }
-  return 'Неожиданная ошибка';
+  return toSafeActionError(error, 'Не удалось сохранить изменения');
 }
 
 export async function createWebsiteAction(

@@ -6,6 +6,7 @@ import { assertAuthenticated } from '@/lib/auth/session';
 import { checkDsdHealth, DsdApiError } from '@/lib/dsd/client';
 import { DsdConfigError, requireDsdClientConfig } from '@/lib/dsd/config';
 import { runManualDsdFullSync } from '@/lib/dsd/sync';
+import { toSafeActionError } from '@/lib/errors/safe-action';
 import { checkGscHealth, GscApiError } from '@/lib/gsc/client';
 import { GscConfigError, requireGscClientConfig } from '@/lib/gsc/config';
 import { runManualGscLifecycleSync } from '@/lib/gsc/lifecycle';
@@ -48,8 +49,7 @@ function mapError(error: unknown): string {
   ) {
     return error.message;
   }
-  if (error instanceof Error) return error.message;
-  return 'Операция интеграции не выполнена';
+  return toSafeActionError(error, 'Операция интеграции не выполнена');
 }
 
 export async function checkDsdConnectionAction(

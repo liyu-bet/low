@@ -1,13 +1,23 @@
 name: Publish images and deploy
 
+# Deploy only after CI quality-gate succeeds on main (no race with parallel push).
+# Manual dispatch re-runs the e2e quality gate unless an explicit emergency override is set.
 on:
-  push:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
     branches: [main]
   workflow_dispatch:
+    inputs:
+      confirm_skip_quality:
+        description: "Emergency only — type SKIP_QUALITY to deploy without re-running e2e"
+        required: false
+        default: ""
 
 permissions:
   contents: read
   packages: write
+  actions: read
 
 concurrency:
   group: low-production-deploy
@@ -19,17 +29,58 @@ env:
   IMAGE_WORKER: ghcr.io/liyu-bet/low-worker
 
 jobs:
-  validate:
+  ci-gate:
+    name: Require CI success
+    if: github.event_name == 'workflow_run'
     runs-on: ubuntu-latest
+    steps:
+      - name: CI must succeed (validate + e2e)
+        env:
+          CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          EVENT_NAME: ${{ github.event.workflow_run.event }}
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          echo "workflow_run conclusion=${CONCLUSION} event=${EVENT_NAME} branch=${HEAD_BRANCH} sha=${HEAD_SHA}"
+          if [ "${EVENT_NAME}" != "push" ]; then
+            echo "Skipping publish for non-push CI runs (e.g. pull_request)"
+            exit 1
+          fi
+          if [ "${CONCLUSION}" != "success" ]; then
+            echo "CI did not succeed — blocking deploy"
+            exit 1
+          fi
+
+  manual-e2e:
+    name: Manual deploy e2e gate
+    if: |
+      github.event_name == 'workflow_dispatch' &&
+      github.event.inputs.confirm_skip_quality != 'SKIP_QUALITY'
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: low_e2e
+          POSTGRES_USER: low_e2e
+          POSTGRES_PASSWORD: low_e2e_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U low_e2e -d low_e2e"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     env:
-      DATABASE_URL: postgresql://low:low@127.0.0.1:5432/low
-      SESSION_SECRET: ci-session-secret-at-least-32-characters-long
-      ADMIN_EMAIL: ci@example.com
-      ADMIN_PASSWORD: ci-password-not-used
+      NODE_ENV: test
+      DATABASE_URL: postgresql://low_e2e:low_e2e_password@127.0.0.1:5432/low_e2e
+      SESSION_SECRET: e2e-session-secret-at-least-32-characters
+      ADMIN_EMAIL: bootstrap@example.test
+      ADMIN_PASSWORD: bootstrap-test-password
+      E2E_EMAIL: admin@example.test
+      E2E_PASSWORD: admin-test-password
       NEXT_TELEMETRY_DISABLED: "1"
-      POSTGRES_USER: low
-      POSTGRES_PASSWORD: ci-password
-      POSTGRES_DB: low
+      CI: "true"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -37,25 +88,61 @@ jobs:
           node-version: "22"
           cache: npm
       - run: npm ci
-      - run: npx prisma validate
-      - run: npm run typecheck
-      - run: npm test
+      - run: npx prisma generate
+      - run: npx prisma migrate deploy
+      - run: npm run e2e:seed
       - run: npm run build
-      - name: Dummy .env for compose config
-        run: |
-          printf 'DATABASE_URL=postgresql://low:ci-password@postgres:5432/low\n' > .env
-      - name: Compose config (prod)
-        run: docker compose -f docker-compose.prod.yml config -q
-      - name: Compose config (dev)
-        run: docker compose config -q
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e:ci
+      - name: Scrub storageState before upload
+        if: failure()
+        run: rm -rf .playwright
+      - name: Upload Playwright artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-manual-e2e-${{ github.run_id }}
+          retention-days: 7
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+
+  manual-override:
+    name: Emergency override acknowledged
+    if: |
+      github.event_name == 'workflow_dispatch' &&
+      github.event.inputs.confirm_skip_quality == 'SKIP_QUALITY'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Warn
+        run: echo "::warning::Deploying with SKIP_QUALITY — e2e gate bypassed by explicit override"
 
   build-and-push:
-    needs: validate
+    needs: [ci-gate, manual-e2e, manual-override]
+    if: |
+      always() &&
+      (
+        (github.event_name == 'workflow_run' && needs.ci-gate.result == 'success') ||
+        (github.event_name == 'workflow_dispatch' && needs.manual-e2e.result == 'success') ||
+        (github.event_name == 'workflow_dispatch' && needs.manual-override.result == 'success')
+      )
     runs-on: ubuntu-latest
     outputs:
       short_sha: ${{ steps.sha.outputs.short }}
     steps:
+      - name: Resolve checkout ref
+        id: ref
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            echo "sha=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "sha=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.ref.outputs.sha }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -69,7 +156,7 @@ jobs:
 
       - name: Short SHA
         id: sha
-        run: echo "short=$(echo ${{ github.sha }} | cut -c1-7)" >> "$GITHUB_OUTPUT"
+        run: echo "short=$(echo ${{ steps.ref.outputs.sha }} | cut -c1-7)" >> "$GITHUB_OUTPUT"
 
       - name: Build and push web
         uses: docker/build-push-action@v6
@@ -101,11 +188,28 @@ jobs:
     name: Deploy on server
     needs: build-and-push
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    if: |
+      always() &&
+      needs.build-and-push.result == 'success' &&
+      (
+        (github.event_name == 'workflow_run' && github.event.workflow_run.head_branch == 'main') ||
+        (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
+      )
     env:
       LOW_IMAGE_TAG: ${{ needs.build-and-push.outputs.short_sha }}
     steps:
+      - name: Resolve checkout ref
+        id: ref
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            echo "sha=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "sha=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.ref.outputs.sha }}
 
       - name: Upload deployment files
         uses: appleboy/scp-action@v0.1.7

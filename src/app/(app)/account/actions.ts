@@ -6,6 +6,7 @@ import {
   requireUserSession,
 } from '@/app/login/actions';
 import { changeUserPassword, updateUserProfile } from '@/lib/auth/users';
+import { toSafeActionError } from '@/lib/errors/safe-action';
 
 export type AccountActionState = {
   ok?: boolean;
@@ -26,7 +27,7 @@ export async function updateProfileAction(
     revalidatePath('/account');
     return { ok: true, message: 'Имя обновлено' };
   } catch (error) {
-    return { error: error instanceof Error ? error.message : 'Не удалось сохранить' };
+    return { error: toSafeActionError(error, 'Не удалось сохранить изменения') };
   }
 }
 
@@ -54,6 +55,6 @@ export async function changePasswordAction(
     revalidatePath('/account');
     return { ok: true, message: 'Пароль изменён', redirectTo: '/websites' };
   } catch (error) {
-    return { error: error instanceof Error ? error.message : 'Не удалось сменить пароль' };
+    return { error: toSafeActionError(error, 'Не удалось сохранить изменения') };
   }
 }

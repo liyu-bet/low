@@ -102,6 +102,9 @@ docker compose up --build
 | `npm run build` | Prisma generate + production build |
 | `npm run typecheck` | TypeScript |
 | `npm test` | Unit tests |
+| `npm run e2e:seed` | Deterministic seed for dedicated e2e Postgres (never production) |
+| `npm run test:e2e` | Playwright e2e against local app |
+| `npm run test:e2e:ci` | Playwright e2e with list+html reporters |
 | `npm run db:validate` | Prisma schema validation |
 | `npm run db:check` | `SELECT 1` against local Postgres |
 | `npm run worker:start` | Unified DSD/GSC sync worker |
@@ -186,9 +189,30 @@ Run locally: `npm run worker:start`. Compose service: `worker` (no published por
 - URL: `https://low.liyu.bet`
 - Images: GHCR (`ghcr.io/liyu-bet/low-web`, `low-worker`), tag pinned as `LOW_IMAGE_TAG=<short-sha>`
 - Compose: `docker-compose.prod.yml`, project `low-production`
-- Deploy: `.github/workflows/publish-images.yml`
+- Deploy: `.github/workflows/publish-images.yml` (starts only after CI `validate` + `e2e` succeed on `main`)
 - Server env is uploaded separately (never via git)
 - Rollback: `./deploy/rollback.sh <previous-sha>` (does not downgrade migrations)
+
+## End-to-end quality gate
+
+Playwright e2e requires a **dedicated** PostgreSQL database. Never point e2e at production.
+
+Do **not**:
+
+- use the production database or production credentials;
+- set `E2E_BASE_URL` to `https://low.liyu.bet` (or any non-local host);
+- run `npm run e2e:seed` against anything except a local/test database (`NODE_ENV=test` or `E2E_ALLOW_SEED=1`).
+
+Local run:
+
+1. Create a separate database, e.g. `low_e2e` (user/password of your choice).
+2. Copy `.env.e2e.example` values into your shell / a local env file (do not commit `.env.e2e`).
+3. Apply migrations: `npx prisma migrate deploy`
+4. Seed deterministic fixtures: `npm run e2e:seed`
+5. Build: `npm run build`
+6. Run: `npm run test:e2e`
+
+CI runs the same flow with Postgres 16 service `low_e2e` and blocks publish/deploy until e2e passes.
 
 ## Roadmap after v1
 

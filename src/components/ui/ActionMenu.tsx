@@ -4,6 +4,7 @@ import {
   useCallback,
   useEffect,
   useId,
+  useLayoutEffect,
   useRef,
   useState,
   type ReactNode,
@@ -22,6 +23,7 @@ export function ActionMenu({
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const [side, setSide] = useState<'start' | 'end'>(align);
   const rootRef = useRef<HTMLDivElement>(null);
   const menuId = useId();
 
@@ -54,6 +56,18 @@ export function ActionMenu({
     return () => window.removeEventListener('popstate', onPop);
   }, [close]);
 
+  useLayoutEffect(() => {
+    if (!open) {
+      setSide(align);
+      return;
+    }
+    const menu = rootRef.current?.querySelector<HTMLElement>('[role="menu"]');
+    if (!menu) return;
+    const rect = menu.getBoundingClientRect();
+    if (rect.left < 0) setSide('start');
+    else if (rect.right > window.innerWidth - 1) setSide('end');
+  }, [open, align]);
+
   return (
     <div ref={rootRef} className={cn('relative shrink-0', className)}>
       <button
@@ -73,13 +87,14 @@ export function ActionMenu({
           role="menu"
           className={cn(
             'absolute top-full z-50 mt-1 w-56 max-w-[calc(100vw-2rem)] space-y-1 rounded-[10px] border border-ink-700 bg-white p-1.5 shadow-card',
-            align === 'end' ? 'right-0' : 'left-0',
+            side === 'end' ? 'right-0' : 'left-0',
           )}
         >
           <div
             onClick={(event) => {
               const el = event.target as HTMLElement;
-              if (el.closest('a,button[type="submit"],button[data-close-menu]')) {
+              // Keep menu mounted for submit buttons so server actions complete.
+              if (el.closest('a,button[data-close-menu]')) {
                 close();
               }
             }}

@@ -2,12 +2,12 @@
 
 import { revalidatePath } from 'next/cache';
 import { requireAdminSession } from '@/app/login/actions';
-import { ForbiddenError } from '@/lib/auth/session';
 import {
   adminResetPassword,
   createUser,
   updateUserAdminFields,
 } from '@/lib/auth/users';
+import { toSafeActionError } from '@/lib/errors/safe-action';
 import type { UserRole } from '@prisma/client';
 
 export type UsersActionState = {
@@ -17,9 +17,7 @@ export type UsersActionState = {
 };
 
 function mapError(error: unknown): string {
-  if (error instanceof ForbiddenError) return error.message;
-  if (error instanceof Error) return error.message;
-  return 'Операция не выполнена';
+  return toSafeActionError(error, 'Не удалось сохранить изменения');
 }
 
 export async function createUserAction(

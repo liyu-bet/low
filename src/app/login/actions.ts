@@ -102,10 +102,12 @@ export async function requireUserSession(options?: {
   return session;
 }
 
-/** Requires authenticated ADMIN. */
+/** Requires authenticated ADMIN. Non-admins are redirected (pages) / never reach admin UI. */
 export async function requireAdminSession(): Promise<UserSession> {
   const session = await requireUserSession();
-  assertAdmin(session);
+  if (session.role !== 'ADMIN') {
+    redirect('/websites');
+  }
   return session;
 }
 

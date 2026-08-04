@@ -1,9 +1,9 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { ZodError } from 'zod';
 import { requireUserSession } from '@/app/login/actions';
 import { authorSnapshot } from '@/lib/auth/session';
+import { toSafeActionError } from '@/lib/errors/safe-action';
 import { createManualWebsiteEvent, isWebsiteNotFoundError } from '@/lib/events/service';
 
 export type EventFormState = {
@@ -21,11 +21,7 @@ function formDataToObject(formData: FormData): Record<string, string> {
 
 function mapError(error: unknown): string {
   if (isWebsiteNotFoundError(error)) return 'Сайт не найден';
-  if (error instanceof ZodError) {
-    return error.errors.map((issue) => issue.message).join('; ');
-  }
-  if (error instanceof Error) return error.message;
-  return 'Не удалось сохранить событие';
+  return toSafeActionError(error, 'Не удалось сохранить событие');
 }
 
 export async function createManualEventAction(

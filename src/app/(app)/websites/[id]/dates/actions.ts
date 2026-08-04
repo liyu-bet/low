@@ -1,10 +1,10 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { ZodError } from 'zod';
 import { requireAdminSession } from '@/app/login/actions';
 import { assertAuthenticated, authorSnapshot } from '@/lib/auth/session';
 import { DateOnlyError } from '@/lib/dates/date-only';
+import { toSafeActionError } from '@/lib/errors/safe-action';
 import {
   clearDateOverride,
   isWebsiteNotFoundError,
@@ -28,11 +28,7 @@ function formDataToObject(formData: FormData): Record<string, string> {
 function mapError(error: unknown): string {
   if (isWebsiteNotFoundError(error)) return 'Сайт не найден';
   if (error instanceof DateOnlyError) return error.message;
-  if (error instanceof ZodError) {
-    return error.errors.map((issue) => issue.message).join('; ');
-  }
-  if (error instanceof Error) return error.message;
-  return 'Не удалось сохранить корректировку даты';
+  return toSafeActionError(error, 'Не удалось сохранить корректировку даты');
 }
 
 export async function setDateOverrideAction(

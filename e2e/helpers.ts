@@ -1,39 +1,108 @@
-import fs from 'node:fs';
-import path from 'node:path';
-import { expect, type Page } from '@playwright/test';
+import { expect, type Page, type ConsoleMessage, type Response } from '@playwright/test';
+import { E2E_SITES, E2E_USERS } from '../src/lib/e2e/guards';
+import {
+  isFatalBrowserMessage,
+  isIgnorableBrowserMessage,
+} from '../src/lib/e2e/browser-errors';
 
-function loadEnvFile() {
-  const envPath = path.join(process.cwd(), '.env');
-  if (!fs.existsSync(envPath)) return;
-  for (const line of fs.readFileSync(envPath, 'utf8').split(/\r?\n/)) {
-    if (!line || line.startsWith('#') || !line.includes('=')) continue;
-    const i = line.indexOf('=');
-    const key = line.slice(0, i).trim();
-    const value = line.slice(i + 1).trim().replace(/^["']|["']$/g, '');
-    if (!(key in process.env)) process.env[key] = value;
-  }
-}
-
-loadEnvFile();
+export { E2E_SITES, E2E_USERS };
 
 export async function expectNoHorizontalOverflow(page: Page) {
   const dimensions = await page.evaluate(() => ({
     scrollWidth: document.documentElement.scrollWidth,
     clientWidth: document.documentElement.clientWidth,
   }));
-
-  expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth + 1);
+  expect(
+    dimensions.scrollWidth,
+    `horizontal overflow: scrollWidth=${dimensions.scrollWidth} clientWidth=${dimensions.clientWidth}`,
+  ).toBeLessThanOrEqual(dimensions.clientWidth + 1);
 }
 
-export async function loginAsTestUser(page: Page) {
-  const email = process.env.E2E_EMAIL || process.env.ADMIN_EMAIL;
-  const password = process.env.E2E_PASSWORD || process.env.ADMIN_PASSWORD;
-  if (!email || !password) {
-    throw new Error('E2E_EMAIL/E2E_PASSWORD or ADMIN_EMAIL/ADMIN_PASSWORD required for e2e');
+export async function assertDatabaseReady(page: Page) {
+  const res = await page.request.get('/api/health/ready');
+  if (!res.ok()) {
+    throw new Error(
+      'E2E database is not ready. Apply migrations and run npm run e2e:seed.',
+    );
   }
+  const body = (await res.json()) as { database?: string; status?: string };
+  if (body.database !== 'up') {
+    throw new Error(
+      'E2E database is not ready. Apply migrations and run npm run e2e:seed.',
+    );
+  }
+}
+
+export async function loginWithCredentials(
+  page: Page,
+  email: string,
+  password: string,
+) {
   await page.goto('/login');
   await page.fill('input[name="email"]', email);
   await page.fill('input[name="password"]', password);
   await page.click('button[type="submit"]');
-  await page.waitForURL(/\/(websites|account)/, { timeout: 20_000 });
+}
+
+export async function expectLoginSuccess(page: Page) {
+  await page.waitForURL(/\/websites/, { timeout: 20_000 });
+}
+
+export function attachBrowserErrorCollector(page: Page) {
+  const errors: string[] = [];
+
+  const onConsole = (msg: ConsoleMessage) => {
+    if (msg.type() !== 'error') return;
+    const text = msg.text();
+    if (isIgnorableBrowserMessage(text)) return;
+    if (isFatalBrowserMessage(text) || true) {
+      // Treat remaining console.error as fatal unless ignorable
+      if (!isIgnorableBrowserMessage(text)) errors.push(`console.error: ${text}`);
+    }
+  };
+
+  const onPageError = (error: Error) => {
+    errors.push(`pageerror: ${error.message}`);
+  };
+
+  const onResponse = (response: Response) => {
+    const status = response.status();
+    const url = response.url();
+    if (status >= 500 && !url.includes('/_next/static')) {
+      errors.push(`http ${status}: ${url}`);
+    }
+  };
+
+  page.on('console', onConsole);
+  page.on('pageerror', onPageError);
+  page.on('response', onResponse);
+
+  return {
+    assertClean() {
+      expect(errors, errors.join('\n')).toEqual([]);
+    },
+    dispose() {
+      page.off('console', onConsole);
+      page.off('pageerror', onPageError);
+      page.off('response', onResponse);
+    },
+  };
+}
+
+export async function openWebsiteByDomain(page: Page, domain: string) {
+  await page.goto('/websites');
+  await page.getByPlaceholder(/Поиск/i).fill(domain);
+  await expect(page.getByRole('link', { name: domain }).first()).toBeVisible();
+  await page.getByRole('link', { name: domain }).first().click();
+  await expect(page.getByRole('heading', { name: domain })).toBeVisible();
+}
+
+export async function profilePathForDomain(page: Page, domain: string): Promise<string> {
+  await page.goto('/websites');
+  await page.getByPlaceholder(/Поиск/i).fill(domain);
+  const link = page.getByRole('link', { name: domain }).first();
+  await expect(link).toBeVisible();
+  const href = await link.getAttribute('href');
+  if (!href) throw new Error(`No href for domain ${domain}`);
+  return href;
 }

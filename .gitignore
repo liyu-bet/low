@@ -23,8 +23,10 @@ prisma/*.db-journal
 
 # Local Postgres data (outside Docker)
 ../pgdata/
+../pgdata-e2e/
 ../pg-local.log
 pgdata/
+pgdata-e2e/
 pg-local.log
 
 # Logs / OS
@@ -44,4 +46,5 @@ Thumbs.db
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+.playwright/
 /tmp/

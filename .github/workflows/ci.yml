@@ -70,3 +70,95 @@ jobs:
           POSTGRES_DB: low
           DATABASE_URL: postgresql://low:ci-password@postgres:5432/low
         run: docker compose -f docker-compose.prod.yml config -q
+
+  e2e:
+    needs: validate
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: low_e2e
+          POSTGRES_USER: low_e2e
+          POSTGRES_PASSWORD: low_e2e_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U low_e2e -d low_e2e"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://low_e2e:low_e2e_password@127.0.0.1:5432/low_e2e
+      SESSION_SECRET: e2e-session-secret-at-least-32-characters
+      ADMIN_EMAIL: bootstrap@example.test
+      ADMIN_PASSWORD: bootstrap-test-password
+      E2E_EMAIL: admin@example.test
+      E2E_PASSWORD: admin-test-password
+      NEXT_TELEMETRY_DISABLED: "1"
+      CI: "true"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Prisma generate
+        run: npx prisma generate
+
+      - name: Prisma migrate deploy
+        run: npx prisma migrate deploy
+
+      - name: E2E seed
+        run: npm run e2e:seed
+
+      - name: Build
+        run: npm run build
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Playwright e2e
+        run: npm run test:e2e:ci
+
+      - name: Scrub storageState before upload
+        if: failure()
+        run: rm -rf .playwright
+
+      - name: Upload Playwright artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-e2e-${{ github.run_id }}
+          retention-days: 7
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+
+  quality-gate:
+    name: quality-gate
+    needs: [validate, e2e]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require validate and e2e success
+        run: |
+          echo "validate=${{ needs.validate.result }}"
+          echo "e2e=${{ needs.e2e.result }}"
+          if [ "${{ needs.validate.result }}" != "success" ]; then
+            echo "validate did not succeed"
+            exit 1
+          fi
+          if [ "${{ needs.e2e.result }}" != "success" ]; then
+            echo "e2e did not succeed (failed/skipped/cancelled blocks deploy)"
+            exit 1
+          fi

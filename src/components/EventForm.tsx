@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useEffect, useRef } from 'react';
+import { useActionState, useEffect, useRef, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import type { EventFormState } from '@/app/(app)/websites/[id]/events/actions';
@@ -28,7 +28,11 @@ export function EventForm({ action }: Props) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const [state, formAction] = useActionState(action, {});
-  const today = new Date().toISOString().slice(0, 10);
+  const [today, setToday] = useState('');
+
+  useEffect(() => {
+    setToday(new Date().toISOString().slice(0, 10));
+  }, []);
 
   useEffect(() => {
     if (state.ok) {

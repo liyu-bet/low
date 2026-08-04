@@ -161,12 +161,12 @@ export function WebsitesBulkPanel({
   const eligibleForTasks = selectedRows.filter(
     (row) => !row.archivedAt && row.status !== 'ARCHIVED',
   ).length;
-  const bulkOperationId = useMemo(
-    () => `bulk_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`,
-    // regenerate when selection or action changes to work form
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [action, websiteIdsJson],
-  );
+  const [bulkOperationId, setBulkOperationId] = useState('bulk_pending');
+  useEffect(() => {
+    setBulkOperationId(
+      `bulk_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`,
+    );
+  }, [action, websiteIdsJson]);
 
   const [groupState, groupAction] = useActionState(bulkSetGroupAction, {} as BulkActionState);
   const [addTagsState, addTagsAction] = useActionState(bulkAddTagsAction, {} as BulkActionState);
