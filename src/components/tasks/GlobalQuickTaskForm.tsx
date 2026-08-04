@@ -12,7 +12,7 @@ import { TaskPriority } from '@prisma/client';
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <button type="submit" disabled={pending} className="btn-primary shrink-0">
+    <button type="submit" disabled={pending} aria-busy={pending || undefined} className="btn-primary shrink-0">
       <span className="inline-block min-w-[4.75rem] text-center">
         {pending ? '…' : 'Добавить'}
       </span>
@@ -32,10 +32,15 @@ export function GlobalQuickTaskForm({
   const titleRef = useRef<HTMLInputElement>(null);
   const [state, formAction] = useActionState(createTaskAction, {} as TaskActionState);
   const [flashOk, setFlashOk] = useState(false);
+  const [websiteId, setWebsiteId] = useState(defaultWebsiteId ?? '');
+
+  useEffect(() => {
+    if (defaultWebsiteId) setWebsiteId(defaultWebsiteId);
+  }, [defaultWebsiteId]);
 
   useEffect(() => {
     if (!state.ok) return;
-    formRef.current?.reset();
+    if (titleRef.current) titleRef.current.value = '';
     setFlashOk(true);
     preserveScroll(() => router.refresh());
     titleRef.current?.focus();
@@ -55,11 +60,12 @@ export function GlobalQuickTaskForm({
           {state.error}
         </p>
       ) : null}
-      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         <select
           name="websiteId"
           required
-          defaultValue={defaultWebsiteId ?? ''}
+          value={websiteId}
+          onChange={(event) => setWebsiteId(event.target.value)}
           className="field-input min-w-0 sm:max-w-[14rem]"
         >
           <option value="" disabled>
@@ -81,7 +87,7 @@ export function GlobalQuickTaskForm({
         />
         <div className="flex items-center gap-2">
           <SubmitButton />
-          <span className="inline-flex min-w-[4.75rem] items-center">
+          <span className="inline-flex min-w-[4.75rem] items-center" aria-live="polite">
             {flashOk ? <InlineNotice>Добавлено</InlineNotice> : null}
           </span>
         </div>

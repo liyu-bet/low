@@ -64,13 +64,29 @@ export function dateOnlyToInputValue(date: Date | null | undefined): string {
   return `${y}-${m}-${d}`;
 }
 
-/** Russian long date from UTC calendar components: «31 июля 2026 г.» */
+const RU_MONTHS_GENITIVE = [
+  'января',
+  'февраля',
+  'марта',
+  'апреля',
+  'мая',
+  'июня',
+  'июля',
+  'августа',
+  'сентября',
+  'октября',
+  'ноября',
+  'декабря',
+] as const;
+
+/**
+ * Russian long date from UTC calendar components: «31 июля 2026 г.»
+ * Deterministic — avoids Node/Chromium ICU mismatches that break hydration.
+ */
 export function formatDateOnlyRu(value: Date | null | undefined): string {
   if (!value) return '—';
-  return value.toLocaleDateString('ru-RU', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    timeZone: 'UTC',
-  });
+  const day = value.getUTCDate();
+  const month = RU_MONTHS_GENITIVE[value.getUTCMonth()];
+  const year = value.getUTCFullYear();
+  return `${day} ${month} ${year} г.`;
 }

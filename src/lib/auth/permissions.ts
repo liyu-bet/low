@@ -44,7 +44,7 @@ export function assertCanEditTask(
   task: { createdByUserId: string | null; assignedToUserId: string | null },
 ): void {
   if (!canEditTask(session, task)) {
-    throw new ForbiddenError('Нельзя изменить эту задачу');
+    throw new ForbiddenError('Недостаточно прав');
   }
 }
 

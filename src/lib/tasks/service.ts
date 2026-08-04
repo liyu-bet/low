@@ -104,7 +104,8 @@ export function parseTaskFilters(
   const actionRaw = raw('action');
 
   return {
-    focus: VALID_FOCUS.has(focusRaw as TaskFocus) ? (focusRaw as TaskFocus) : 'open',
+    // Bare /tasks defaults to the personal open queue («Мои»).
+    focus: VALID_FOCUS.has(focusRaw as TaskFocus) ? (focusRaw as TaskFocus) : 'mine',
     q: raw('q'),
     websiteId: raw('websiteId'),
     group: raw('group'),
@@ -120,7 +121,8 @@ export function parseTaskFilters(
 
 export function buildTasksQuery(filters: Partial<TaskFilters>): string {
   const params = new URLSearchParams();
-  if (filters.focus && filters.focus !== 'open') params.set('focus', filters.focus);
+  // Default tab is mine — omit from URL; encode open and all other focuses explicitly.
+  if (filters.focus && filters.focus !== 'mine') params.set('focus', filters.focus);
   if (filters.q?.trim()) params.set('q', filters.q.trim());
   if (filters.websiteId) params.set('websiteId', filters.websiteId);
   if (filters.group) params.set('group', filters.group);

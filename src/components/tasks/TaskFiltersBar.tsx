@@ -1,19 +1,7 @@
 import Link from 'next/link';
-import type { TaskFilters, TaskFocus } from '@/lib/tasks/types';
+import type { TaskFilters } from '@/lib/tasks/types';
 import { TASK_PRIORITY_LABELS, TASK_STATUS_LABELS } from '@/lib/ui/labels';
 import type { WebsiteOption } from '@/lib/tasks/types';
-
-const FOCUS_OPTIONS: Array<{ value: TaskFocus; label: string }> = [
-  { value: 'open', label: 'Все открытые' },
-  { value: 'mine', label: 'Мои' },
-  { value: 'overdue', label: 'Просроченные' },
-  { value: 'today', label: 'Сегодня' },
-  { value: 'upcoming', label: 'Ближайшие' },
-  { value: 'no_due', label: 'Без срока' },
-  { value: 'in_progress', label: 'В работе' },
-  { value: 'done', label: 'Выполненные' },
-  { value: 'canceled', label: 'Отменённые' },
-];
 
 export function TaskFiltersBar({
   filters,
@@ -27,7 +15,9 @@ export function TaskFiltersBar({
   users?: Array<{ id: string; name: string; email: string }>;
 }) {
   return (
-    <form method="get" action="/tasks" className="space-y-3 rounded border border-ink-700 bg-white p-4">
+    <form method="get" action="/tasks" className="space-y-3">
+      {/* Preserve focus from tab / legacy URL — not a visible control. */}
+      <input type="hidden" name="focus" value={filters.focus} />
       <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
         <label className="block text-sm text-ink-200">
           Поиск
@@ -35,30 +25,12 @@ export function TaskFiltersBar({
             name="q"
             defaultValue={filters.q}
             placeholder="Название, описание или домен"
-            className="mt-1 w-full rounded border border-ink-700 bg-white px-3 py-2 text-ink-50"
+            className="field-input mt-1"
           />
         </label>
         <label className="block text-sm text-ink-200">
-          Фокус
-          <select
-            name="focus"
-            defaultValue={filters.focus}
-            className="mt-1 w-full rounded border border-ink-700 bg-white px-3 py-2 text-ink-50"
-          >
-            {FOCUS_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="block text-sm text-ink-200">
           Сайт
-          <select
-            name="websiteId"
-            defaultValue={filters.websiteId}
-            className="mt-1 w-full rounded border border-ink-700 bg-white px-3 py-2 text-ink-50"
-          >
+          <select name="websiteId" defaultValue={filters.websiteId} className="field-input mt-1">
             <option value="">Все сайты</option>
             {websites.map((site) => (
               <option key={site.id} value={site.id}>
@@ -69,11 +41,7 @@ export function TaskFiltersBar({
         </label>
         <label className="block text-sm text-ink-200">
           Группа
-          <select
-            name="group"
-            defaultValue={filters.group}
-            className="mt-1 w-full rounded border border-ink-700 bg-white px-3 py-2 text-ink-50"
-          >
+          <select name="group" defaultValue={filters.group} className="field-input mt-1">
             <option value="">Все группы</option>
             {groups.map((group) => (
               <option key={group} value={group}>
@@ -84,11 +52,7 @@ export function TaskFiltersBar({
         </label>
         <label className="block text-sm text-ink-200">
           Приоритет
-          <select
-            name="priority"
-            defaultValue={filters.priority}
-            className="mt-1 w-full rounded border border-ink-700 bg-white px-3 py-2 text-ink-50"
-          >
+          <select name="priority" defaultValue={filters.priority} className="field-input mt-1">
             <option value="">Любой</option>
             {Object.entries(TASK_PRIORITY_LABELS).map(([value, label]) => (
               <option key={value} value={value}>
@@ -99,11 +63,7 @@ export function TaskFiltersBar({
         </label>
         <label className="block text-sm text-ink-200">
           Статус
-          <select
-            name="status"
-            defaultValue={filters.status}
-            className="mt-1 w-full rounded border border-ink-700 bg-white px-3 py-2 text-ink-50"
-          >
+          <select name="status" defaultValue={filters.status} className="field-input mt-1">
             <option value="">Любой</option>
             {Object.entries(TASK_STATUS_LABELS).map(([value, label]) => (
               <option key={value} value={value}>
@@ -117,7 +77,7 @@ export function TaskFiltersBar({
           <select
             name="assignedToUserId"
             defaultValue={filters.assignedToUserId}
-            className="mt-1 w-full rounded border border-ink-700 bg-white px-3 py-2 text-ink-50"
+            className="field-input mt-1"
           >
             <option value="">Любой</option>
             {users.map((user) => (
@@ -132,7 +92,7 @@ export function TaskFiltersBar({
           <select
             name="createdByUserId"
             defaultValue={filters.createdByUserId}
-            className="mt-1 w-full rounded border border-ink-700 bg-white px-3 py-2 text-ink-50"
+            className="field-input mt-1"
           >
             <option value="">Любой</option>
             {users.map((user) => (
@@ -144,16 +104,10 @@ export function TaskFiltersBar({
         </label>
       </div>
       <div className="flex flex-wrap gap-3">
-        <button
-          type="submit"
-          className="rounded bg-moss-500 px-3 py-2 text-sm font-semibold text-white hover:bg-moss-600"
-        >
+        <button type="submit" className="btn-primary">
           Применить
         </button>
-        <Link
-          href="/tasks"
-          className="rounded border border-ink-700 px-3 py-2 text-sm text-ink-100 hover:border-moss-500"
-        >
+        <Link href="/tasks" className="btn-secondary">
           Сбросить фильтры
         </Link>
       </div>

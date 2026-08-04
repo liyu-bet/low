@@ -89,6 +89,7 @@ export default async function WebsiteDetailPage({
         archived={archived}
         openTasks={profile.tasks.openTasks}
         assignees={assignees}
+        session={session}
       />
 
       <WebsiteLifeTree

@@ -57,14 +57,16 @@ test.describe('member permissions', () => {
     await openWebsiteByDomain(page, E2E_SITES.nextStage.domain);
     const foreign = page.locator('li').filter({ hasText: 'E2E foreign admin-only task' });
     await expect(foreign).toBeVisible();
-    const menu = foreign.first().getByRole('button', { name: 'Дополнительные действия' });
-    await menu.click();
-    await page.getByText('Редактировать').click();
-    await foreign.first().locator('input[name="title"]').fill('hacked by member');
-    await foreign.first().getByRole('button', { name: 'Сохранить' }).click();
-    await expect(page.getByText(/Недостаточно прав|Нельзя изменить эту задачу|прав/i)).toBeVisible({
-      timeout: 10_000,
-    });
+    // MEMBER must not see edit/cancel for a foreign unassigned-to-them task.
+    await expect(
+      foreign.first().getByRole('button', { name: 'Дополнительные действия' }),
+    ).toHaveCount(0);
+    await expect(foreign.first().getByRole('button', { name: /Выполнить/ })).toHaveCount(0);
+
+    // Direct denial path: craft a form posting through the page's update action is blocked
+    // by UI; assert server-facing message via attempting edit on an allowed task then
+    // verifying ForbiddenError mapping in unit tests. Here we confirm no edit affordance.
+    await expect(page.getByRole('dialog', { name: 'Редактировать задачу' })).toHaveCount(0);
 
     await page.goto('/integrations');
     await page.waitForURL(/\/websites/);

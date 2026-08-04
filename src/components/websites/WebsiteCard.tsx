@@ -43,8 +43,7 @@ function PerformanceLine({
     return (
       <div className="space-y-0.5 text-xs text-ink-200">
         <p>
-          {performance.clicks.toLocaleString('ru-RU')} кликов ·{' '}
-          {performance.impressions.toLocaleString('ru-RU')} показов
+          {performance.clicks} кликов · {performance.impressions} показов
         </p>
         {dataLabel ? <p>{dataLabel}</p> : null}
       </div>
@@ -54,8 +53,7 @@ function PerformanceLine({
   const label = formatPerformancePeriodLabel(performance);
   return (
     <p className="text-xs text-ink-200">
-      {label}: показы {performance.impressions.toLocaleString('ru-RU')} · клики{' '}
-      {performance.clicks.toLocaleString('ru-RU')}
+      {label}: показы {performance.impressions} · клики {performance.clicks}
     </p>
   );
 }

@@ -214,6 +214,15 @@ async function main() {
   });
 
   // Tasks — keep open list short so profile “next tasks” (max 5) has room for creates.
+  const today = (() => {
+    const now = new Date();
+    return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  })();
+  const overdueDay = new Date(today);
+  overdueDay.setUTCDate(overdueDay.getUTCDate() - 2);
+  const upcomingDay = new Date(today);
+  upcomingDay.setUTCDate(upcomingDay.getUTCDate() + 5);
+
   await prisma.websiteTask.createMany({
     data: [
       {
@@ -254,6 +263,36 @@ async function main() {
         createdBy: admin.name,
         createdByUserId: admin.id,
         assignedToUserId: member.id,
+      },
+      {
+        websiteId: missingLaunch.id,
+        title: 'E2E overdue task',
+        status: 'TODO',
+        priority: 'HIGH',
+        dueAt: overdueDay,
+        createdBy: admin.name,
+        createdByUserId: admin.id,
+        assignedToUserId: admin.id,
+      },
+      {
+        websiteId: missingLaunch.id,
+        title: 'E2E due today',
+        status: 'TODO',
+        priority: 'MEDIUM',
+        dueAt: today,
+        createdBy: admin.name,
+        createdByUserId: admin.id,
+        assignedToUserId: admin.id,
+      },
+      {
+        websiteId: missingLaunch.id,
+        title: 'E2E upcoming task',
+        status: 'TODO',
+        priority: 'LOW',
+        dueAt: upcomingDay,
+        createdBy: admin.name,
+        createdByUserId: admin.id,
+        assignedToUserId: admin.id,
       },
       {
         websiteId: nextStage.id,

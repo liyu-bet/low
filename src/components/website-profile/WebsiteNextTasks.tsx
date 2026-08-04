@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { CompactTaskRow } from '@/components/tasks/CompactTaskRow';
 import { QuickWebsiteTaskForm } from '@/components/tasks/QuickWebsiteTaskForm';
 import { Section, SectionHeader } from '@/components/ui/layout';
+import { canEditTask } from '@/lib/auth/permissions';
+import type { UserSession } from '@/lib/auth/session';
 import type { TaskListItem } from '@/lib/tasks/types';
 
 const MAX_VISIBLE = 5;
@@ -11,11 +13,13 @@ export function WebsiteNextTasks({
   archived,
   openTasks,
   assignees = [],
+  session,
 }: {
   websiteId: string;
   archived: boolean;
   openTasks: TaskListItem[];
   assignees?: Array<{ id: string; name: string; email: string }>;
+  session: UserSession;
 }) {
   const visible = openTasks.slice(0, MAX_VISIBLE);
   const hasMore = openTasks.length > MAX_VISIBLE;
@@ -26,7 +30,7 @@ export function WebsiteNextTasks({
         title="Задачи"
         action={
           <Link
-            href={`/tasks?websiteId=${websiteId}`}
+            href={`/tasks?websiteId=${websiteId}&focus=open`}
             className="text-sm text-moss-700 hover:underline"
           >
             Все
@@ -45,7 +49,17 @@ export function WebsiteNextTasks({
       ) : (
         <ul className="space-y-2">
           {visible.map((task) => (
-            <CompactTaskRow key={task.id} item={task} dense />
+            <CompactTaskRow
+              key={task.id}
+              item={task}
+              dense
+              currentUserId={session.userId}
+              canEdit={canEditTask(session, {
+                createdByUserId: task.createdByUserId,
+                assignedToUserId: task.assignedToUserId,
+              })}
+              users={assignees}
+            />
           ))}
         </ul>
       )}

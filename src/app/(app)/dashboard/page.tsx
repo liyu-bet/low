@@ -81,7 +81,7 @@ export default async function DashboardPage({
         ))}
         {milestoneEvents.length > 0 ? (
           <div className="rounded-card border border-ink-700 bg-white p-4 sm:col-span-2 lg:col-span-1">
-            <p className="text-sm font-medium text-ink-50">Ключевые milestones</p>
+            <p className="text-sm font-medium text-ink-50">Ключевые этапы</p>
             <p className="mt-1 text-2xl font-semibold text-ink-50">{milestoneEvents.length}</p>
             <p className="mt-1 text-xs text-ink-200">за последнее время</p>
           </div>
@@ -93,15 +93,17 @@ export default async function DashboardPage({
         <DashboardAttentionList items={data.filteredItems.slice(0, 12)} />
         {data.filteredItems.length > 12 ? (
           <p className="text-sm text-ink-200">
-            Показано 12 из {data.filteredItems.length}. Полные фильтры — в прежней версии через
-            query-параметры URL.
+            Показаны первые 12 сайтов.{' '}
+            <a href="/websites" className="text-moss-700 hover:underline">
+              Все сайты
+            </a>
           </p>
         ) : null}
       </section>
 
       {milestoneEvents.length > 0 ? (
         <section className="space-y-3">
-          <h2 className="text-xl font-semibold text-ink-50">Последние ключевые milestones</h2>
+          <h2 className="text-xl font-semibold text-ink-50">Последние ключевые этапы</h2>
           <ul className="space-y-2">
             {milestoneEvents.map((event) => (
               <li key={event.id} className="text-sm text-ink-100">

@@ -8,7 +8,7 @@ import {
   UnauthorizedError,
   userInitials,
 } from './session';
-import { canEditTask } from './permissions';
+import { assertCanEditTask, canEditTask } from './permissions';
 
 describe('auth guards', () => {
   it('MEMBER fails admin assert', () => {
@@ -80,6 +80,18 @@ describe('task edit permissions', () => {
     assert.equal(
       canEditTask(admin, { createdByUserId: 'other', assignedToUserId: null }),
       true,
+    );
+  });
+
+  it('assertCanEditTask denies MEMBER with Недостаточно прав', () => {
+    assert.throws(
+      () =>
+        assertCanEditTask(member, {
+          createdByUserId: 'other',
+          assignedToUserId: null,
+        }),
+      (error: unknown) =>
+        error instanceof ForbiddenError && error.message === 'Недостаточно прав',
     );
   });
 });

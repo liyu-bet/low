@@ -7,6 +7,7 @@ import type {
   TaskStatus,
   WebsiteStatus,
 } from '@prisma/client';
+import { formatDateOnlyRu } from '@/lib/dates/date-only';
 
 export const APP_FULL_NAME_RU = 'Жизнь сайтов';
 
@@ -124,23 +125,16 @@ export function labelTaskPriority(priority: TaskPriority): string {
 }
 
 export function formatDateRu(value: Date | null | undefined): string {
-  if (!value) return '—';
-  return value.toLocaleDateString('ru-RU', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    timeZone: 'UTC',
-  });
+  return formatDateOnlyRu(value);
 }
 
+/** Deterministic «02.08.2026, 14:05» (UTC) — avoids Node/Chromium ICU drift. */
 export function formatDateTimeRu(value: Date | null | undefined): string {
   if (!value) return '—';
-  return value.toLocaleString('ru-RU', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZone: 'UTC',
-  });
+  const y = value.getUTCFullYear();
+  const m = String(value.getUTCMonth() + 1).padStart(2, '0');
+  const d = String(value.getUTCDate()).padStart(2, '0');
+  const hh = String(value.getUTCHours()).padStart(2, '0');
+  const mm = String(value.getUTCMinutes()).padStart(2, '0');
+  return `${d}.${m}.${y}, ${hh}:${mm}`;
 }
