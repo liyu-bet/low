@@ -92,8 +92,8 @@ export function attachBrowserErrorCollector(page: Page) {
 export async function openWebsiteByDomain(page: Page, domain: string) {
   await page.goto('/websites');
   await page.getByPlaceholder(/Поиск/i).fill(domain);
-  await expect(page.getByRole('link', { name: domain }).first()).toBeVisible();
-  await page.getByRole('link', { name: domain }).first().click();
+  await expect(page.getByRole('link', { name: domain, exact: true })).toBeVisible();
+  await page.getByRole('link', { name: domain, exact: true }).click();
   await expect(page.getByRole('heading', { name: domain })).toBeVisible();
 }
 
@@ -108,7 +108,7 @@ export async function ensureWebsiteFiltersOpen(page: Page) {
 export async function profilePathForDomain(page: Page, domain: string): Promise<string> {
   await page.goto('/websites');
   await page.getByPlaceholder(/Поиск/i).fill(domain);
-  const link = page.getByRole('link', { name: domain }).first();
+  const link = page.getByRole('link', { name: domain, exact: true });
   await expect(link).toBeVisible();
   const href = await link.getAttribute('href');
   if (!href) throw new Error(`No href for domain ${domain}`);

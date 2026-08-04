@@ -57,7 +57,7 @@ test.describe('favorites and recommendations', () => {
     await page.goto('/websites');
     // Searching hides the recommendation section, leaving a single row for this domain.
     await page.getByPlaceholder(/Поиск/i).fill(domain);
-    await page.getByRole('link', { name: domain }).first().click();
+    await page.getByRole('link', { name: domain, exact: true }).click();
     await expect(page.getByRole('heading', { name: domain })).toBeVisible();
 
     const star = page.getByRole('button', { name: 'Добавить в избранное' });

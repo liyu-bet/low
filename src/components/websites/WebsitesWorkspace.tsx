@@ -311,7 +311,7 @@ function SiteActions({
       <div className="flex flex-wrap items-center gap-1.5">
         <Link
           href={`/websites/${row.id}`}
-          aria-label={`Открыть ${row.domain}`}
+          aria-label="Открыть"
           title="Открыть"
           className="icon-btn"
         >
