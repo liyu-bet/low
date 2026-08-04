@@ -11,6 +11,7 @@ import {
   type GscPropertiesPage,
   type GscProperty,
 } from '@/lib/gsc/schemas';
+import { gscPerformanceResponseSchema, type GscPerformanceSnapshot } from '@/lib/gsc/performance';
 
 export class GscApiError extends Error {
   readonly status?: number;
@@ -179,6 +180,23 @@ export async function fetchGscPropertyLifecycle(
   const parsed = gscLifecycleSchema.safeParse(json);
   if (!parsed.success) {
     throw new GscApiError('Некорректный ответ lifecycle GSC', {
+      code: 'GSC_INVALID_RESPONSE',
+    });
+  }
+  return parsed.data;
+}
+
+/** Latest-available-day performance snapshot for a single GSC property. */
+export async function fetchGscPropertyPerformance(
+  propertyId: string,
+  config: GscClientConfig = requireGscClientConfig(),
+  fetchImpl: GscFetch = fetch,
+): Promise<GscPerformanceSnapshot> {
+  const url = `${config.baseUrl}/api/integrations/low/properties/${encodeURIComponent(propertyId)}/performance?window=latest_day`;
+  const json = await gscRequest(config, url, fetchImpl);
+  const parsed = gscPerformanceResponseSchema.safeParse(json);
+  if (!parsed.success) {
+    throw new GscApiError('Некорректный ответ performance GSC', {
       code: 'GSC_INVALID_RESPONSE',
     });
   }

@@ -19,6 +19,8 @@ const E2E_DOMAINS = [
   E2E_SITES.complete.normalizedDomain,
   E2E_SITES.missingLaunch.normalizedDomain,
   E2E_SITES.nextStage.normalizedDomain,
+  E2E_SITES.favoriteCandidate.normalizedDomain,
+  E2E_SITES.archivable.normalizedDomain,
 ] as const;
 
 function utcDay(isoDate: string): Date {
@@ -73,6 +75,37 @@ async function createWebsite(
 ): Promise<{ id: string; domain: string }> {
   const website = await prisma.website.create({ data });
   return { id: website.id, domain: website.domain };
+}
+
+/**
+ * Fresh, schema-valid GSC externalData with an embedded performance snapshot,
+ * so `favoriteCandidate` qualifies as a recommendation without touching real GSC.
+ */
+function gscExternalDataWithPerformance(siteUrl: string) {
+  const now = new Date();
+  // GSC's latest available day trails "today" by about two days.
+  const dataDate = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  return {
+    siteUrl,
+    propertyType: 'domain',
+    permissionLevel: 'siteOwner',
+    label: null,
+    isSelected: true,
+    gscFirstSeenAt: now.toISOString(),
+    gscUpdatedAt: now.toISOString(),
+    connection: { id: 'e2e-gsc-conn', email: 'e2e-gsc-owner@example.test', name: 'E2E GSC Owner' },
+    performance: {
+      propertyId: siteUrl,
+      siteUrl,
+      period: 'latest_available_day',
+      periodStart: dataDate,
+      periodEnd: dataDate,
+      dataDate,
+      impressions: 420,
+      clicks: 37,
+      generatedAt: now.toISOString(),
+    },
+  };
 }
 
 async function main() {
@@ -135,6 +168,49 @@ async function main() {
     gscFirstSeenAt: null,
     firstImpressionAt: null,
     firstClickAt: null,
+  });
+
+  const favoriteCandidate = await createWebsite({
+    domain: E2E_SITES.favoriteCandidate.domain,
+    normalizedDomain: E2E_SITES.favoriteCandidate.normalizedDomain,
+    name: E2E_SITES.favoriteCandidate.name,
+    primaryUrl: `https://${E2E_SITES.favoriteCandidate.domain}`,
+    status: 'ACTIVE',
+    lifecycleStage: 'GROWING',
+    group: 'e2e',
+    createdAt: utcDay('2024-01-01'),
+    launchedAt: utcDay('2024-02-01'),
+    firstHealthyAt: utcDay('2024-02-05'),
+    gscFirstSeenAt: utcDay('2024-02-10'),
+    firstImpressionAt: utcDay('2024-03-01'),
+    firstClickAt: utcDay('2024-03-10'),
+    lastWorkAt: utcDay('2024-04-01'),
+  });
+
+  await prisma.websiteIntegration.create({
+    data: {
+      websiteId: favoriteCandidate.id,
+      system: 'GSC',
+      externalEntityId: `sc-domain:${E2E_SITES.favoriteCandidate.normalizedDomain}`,
+      externalKey: `sc-domain:${E2E_SITES.favoriteCandidate.normalizedDomain}`,
+      status: 'LINKED',
+      lastSyncedAt: new Date(),
+      externalData: gscExternalDataWithPerformance(
+        `sc-domain:${E2E_SITES.favoriteCandidate.normalizedDomain}`,
+      ),
+    },
+  });
+
+  await createWebsite({
+    domain: E2E_SITES.archivable.domain,
+    normalizedDomain: E2E_SITES.archivable.normalizedDomain,
+    name: E2E_SITES.archivable.name,
+    primaryUrl: `https://${E2E_SITES.archivable.domain}`,
+    status: 'ACTIVE',
+    lifecycleStage: 'GROWING',
+    group: 'e2e',
+    createdAt: utcDay('2024-06-01'),
+    launchedAt: utcDay('2024-06-10'),
   });
 
   // Tasks — keep open list short so profile “next tasks” (max 5) has room for creates.
@@ -290,7 +366,13 @@ async function main() {
         ok: true,
         admin: admin.email,
         member: member.email,
-        sites: [complete.domain, missingLaunch.domain, nextStage.domain],
+        sites: [
+          complete.domain,
+          missingLaunch.domain,
+          nextStage.domain,
+          favoriteCandidate.domain,
+          E2E_SITES.archivable.domain,
+        ],
       },
       null,
       2,

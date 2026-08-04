@@ -27,6 +27,9 @@ export const EVENT_TYPE_BULK_LIFECYCLE_STAGE_CHANGED = 'BULK_LIFECYCLE_STAGE_CHA
 export const EVENT_TYPE_BULK_WORK_RECORDED = 'BULK_WORK_RECORDED';
 export const EVENT_TYPE_BULK_SITE_ARCHIVED = 'BULK_SITE_ARCHIVED';
 
+export const EVENT_TYPE_WEBSITE_ARCHIVED = 'WEBSITE_ARCHIVED';
+export const EVENT_TYPE_WEBSITE_RESTORED = 'WEBSITE_RESTORED';
+
 export const BULK_WEBSITE_IDS_MAX = 500;
 
 export const APP_NAME = 'LOW';
@@ -39,6 +42,7 @@ export const SESSION_TTL_SECONDS = 60 * 60 * 24 * 14;
 export const DSD_SYNC_JOB_TYPE = 'dsd_sites_sync';
 export const GSC_PROPERTIES_SYNC_JOB_TYPE = 'gsc_properties_sync';
 export const GSC_LIFECYCLE_SYNC_JOB_TYPE = 'gsc_lifecycle_sync';
+export const GSC_PERFORMANCE_SYNC_JOB_TYPE = 'gsc_performance_sync';
 
 /** Legacy jobType values still readable for history. */
 export const DSD_SYNC_JOB_TYPE_LEGACY = 'manual_full_sync';
@@ -51,3 +55,4 @@ export const SYNC_TRIGGER_WORKER = 'worker';
 export const JOB_LOCK_DSD = 'job:dsd_sites_sync';
 export const JOB_LOCK_GSC_PROPERTIES = 'job:gsc_properties_sync';
 export const JOB_LOCK_GSC_LIFECYCLE = 'job:gsc_lifecycle_sync';
+export const JOB_LOCK_GSC_PERFORMANCE = 'job:gsc_performance_sync';

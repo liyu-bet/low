@@ -97,6 +97,14 @@ export async function openWebsiteByDomain(page: Page, domain: string) {
   await expect(page.getByRole('heading', { name: domain })).toBeVisible();
 }
 
+/** Opens the websites list filters panel (idempotent: no-op if already open). */
+export async function ensureWebsiteFiltersOpen(page: Page) {
+  const archiveToggle = page.getByRole('link', { name: /Показать архив|Скрыть архив/ });
+  if (await archiveToggle.isVisible().catch(() => false)) return;
+  await page.getByRole('button', { name: 'Фильтры' }).click();
+  await expect(archiveToggle).toBeVisible();
+}
+
 export async function profilePathForDomain(page: Page, domain: string): Promise<string> {
   await page.goto('/websites');
   await page.getByPlaceholder(/Поиск/i).fill(domain);

@@ -19,6 +19,7 @@ import { parseDateOnly, dateOnlyToInputValue } from '@/lib/dates/date-only';
 import { prisma } from '@/lib/db/prisma';
 import { fetchGscPropertyLifecycle, GscApiError, type GscFetch } from '@/lib/gsc/client';
 import { requireGscClientConfig, type GscClientConfig } from '@/lib/gsc/config';
+import { syncGscPerformanceForActiveWebsites } from '@/lib/gsc/performance-sync';
 import type { GscLifecycle } from '@/lib/gsc/schemas';
 import { acquireJobLock, releaseJobLock } from '@/lib/worker/locks';
 
@@ -429,6 +430,17 @@ export async function runGscLifecycleSync(options: {
         metadata,
       },
     });
+
+    // Best-effort: refresh performance snapshots for active sites' selected properties
+    // while GSC linkage is already warm. Failures here must never fail lifecycle sync.
+    try {
+      await syncGscPerformanceForActiveWebsites({ config, fetchImpl: options.fetchImpl });
+    } catch (error) {
+      console.error(
+        '[GSC LIFECYCLE] performance sync failed:',
+        error instanceof Error ? error.message : error,
+      );
+    }
 
     return {
       syncRunId: finished.id,

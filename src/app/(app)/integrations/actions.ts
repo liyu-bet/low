@@ -10,6 +10,7 @@ import { toSafeActionError } from '@/lib/errors/safe-action';
 import { checkGscHealth, GscApiError } from '@/lib/gsc/client';
 import { GscConfigError, requireGscClientConfig } from '@/lib/gsc/config';
 import { runManualGscLifecycleSync } from '@/lib/gsc/lifecycle';
+import { runManualGscPerformanceSync } from '@/lib/gsc/performance-sync';
 import { runManualGscPropertiesSync } from '@/lib/gsc/sync';
 
 export type IntegrationActionState = {
@@ -180,6 +181,39 @@ export async function syncGscLifecycleAction(
         status: summary.status,
         processed: summary.processed,
         createdCount: summary.createdCount,
+        updatedCount: summary.updatedCount,
+        errorCount: summary.errorCount,
+      },
+    };
+  } catch (error) {
+    return { error: mapError(error) };
+  }
+}
+
+export async function syncGscPerformanceAction(
+  _prev: IntegrationActionState,
+  _formData: FormData,
+): Promise<IntegrationActionState> {
+  const session = await requireAdminSession();
+  assertAuthenticated(session);
+  try {
+    const summary = await runManualGscPerformanceSync({ session });
+    revalidatePath('/integrations');
+    revalidatePath('/websites');
+    revalidatePath('/dashboard');
+    return {
+      ok: summary.status !== 'FAILED' && summary.status !== 'SKIPPED',
+      message: syncMessage(summary.status, {
+        success: 'Показы и клики за сутки обновлены',
+        partial: 'Показы и клики за сутки обновлены частично',
+        skipped: 'Синхронизация уже выполняется',
+        failed: 'Не удалось обновить показы и клики за сутки',
+      }),
+      error: summary.status === 'SKIPPED' ? 'Синхронизация уже выполняется' : undefined,
+      summary: {
+        status: summary.status,
+        processed: summary.processed,
+        createdCount: 0,
         updatedCount: summary.updatedCount,
         errorCount: summary.errorCount,
       },

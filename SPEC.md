@@ -73,6 +73,8 @@ LOW does **not** replace DSD or GSC. It correlates lifecycle facts and work hist
 | `firstClickAtManual` | Manual override for first click |
 | `lastWorkAt` | Last meaningful work activity |
 | `archivedAt` | Soft archive timestamp |
+| `statusBeforeArchive` | Status captured on archive; consumed and cleared by restore |
+| `lifecycleStageBeforeArchive` | Lifecycle stage captured on archive; consumed and cleared by restore |
 
 Effective dates for UI:
 
@@ -132,6 +134,33 @@ Audit of integration sync executions (status, counts, errors). No secrets.
 
 Postgres-based lock for worker jobs (no Redis in iteration 1).
 
+### 5.7 WebsiteFavorite
+
+Per-user pin of a Website. Composite primary key `(userId, websiteId)`; both foreign keys cascade on delete, so a favorite never outlives its user or website.
+
+| Field | Notes |
+| --- | --- |
+| `userId` | Owner; always taken from the session, never from client input |
+| `websiteId` | Favorited website |
+| `createdAt` | Used to order the «Избранное» section (newest first) |
+
+Rules:
+
+- Favorites are strictly personal — a user only ever reads or writes their own rows.
+- Add/remove are idempotent (re-adding an existing favorite or removing a missing one is a no-op).
+- An archived website cannot be favorited for the first time; an existing favorite can always be removed.
+- Favorites are a UI preference, not lifecycle history — they produce no `WebsiteEvent`.
+
+### 5.8 Soft archive and restore
+
+Archiving is a reversible status change, never a delete:
+
+- `archiveWebsite` records `statusBeforeArchive` / `lifecycleStageBeforeArchive`, sets status and stage to `ARCHIVED`, stamps `archivedAt`, and appends a `WEBSITE_ARCHIVED` event (category `LIFECYCLE`).
+- `restoreWebsite` puts back the recorded status/stage (falling back to `ACTIVE`/`LAUNCHED` for websites archived before these fields existed), clears them along with `archivedAt`, and appends `WEBSITE_RESTORED`.
+- Both operations run in a transaction and are idempotent: repeating them is a no-op and emits no duplicate event.
+- Events, tasks and integrations are never touched.
+- Both are ADMIN-only.
+
 ## 6. Domain normalization
 
 Function: `normalizeDomain(input: string): string`
@@ -157,8 +186,9 @@ Must:
 - Session cookie payload: `userId`, `sessionVersion`, `exp` (HMAC with `SESSION_SECRET`).
 - `ADMIN_EMAIL` / `ADMIN_PASSWORD` bootstrap the first ADMIN only when User table is empty.
 - Tasks/events keep legacy `createdBy` string snapshot plus optional `createdByUserId`.
-- ADMIN: users, website settings/archive, bulk ops, integrations/manual sync.
+- ADMIN: users, website settings/archive/restore, bulk ops, integrations/manual sync.
 - MEMBER: view sites/reports, create/complete tasks, edit own/assigned tasks, manual work notes.
+- Both roles manage their own favorites; favorites are never shared or visible across users.
 
 ## 8. Integrations
 
@@ -193,10 +223,28 @@ Server-only env: `GSC_BASE_URL`, `GSC_LOW_API_TOKEN`, `GSC_REQUEST_TIMEOUT_MS`, 
 - `gscFirstSeenAt` = earliest import into the GSC app (`firstSeenAt`), never overwrites an earlier value with a later one; `gscAddedAtManual` untouched.
 - Lifecycle job fills `firstImpressionAt` / `firstClickAt` only when null, or refines to an earlier automatic date (`GSC_*_REFINED`); manual overrides untouched.
 - Date meaning: `earliest_available_in_search_console_api` (not guaranteed first-ever history).
-- Separate SyncRuns: `gsc_properties_sync`, `gsc_lifecycle_sync` (never one transaction with DSD).
-- JobLocks: `job:gsc_properties_sync`, `job:gsc_lifecycle_sync`.
+- Separate SyncRuns: `gsc_properties_sync`, `gsc_lifecycle_sync`, `gsc_performance_sync` (never one transaction with DSD).
+- JobLocks: `job:gsc_properties_sync`, `job:gsc_lifecycle_sync`, `job:gsc_performance_sync`.
 
 UI: `/integrations` GSC block + website GSC properties panel.
+
+#### Daily performance snapshot
+
+`GET /api/integrations/low/properties/:id/performance?window=latest_day` returns impressions/clicks for GSC's **latest available calendar day** (typically today − 2). It is a whole-day figure, **not** a rolling 24-hour window; the UI labels it «За последние доступные сутки · <date>».
+
+- The normalized snapshot is stored inside the property's `WebsiteIntegration.externalData.performance` — no new table, no secrets.
+- Exactly one source property per website is queried (`selectSourceGscProperty`: selected domain property → selected URL-prefix matching `primaryUrl` → first selected). Overlapping domain and URL-prefix properties are **never** summed.
+- Archived websites and unlinked integrations are skipped; concurrency defaults to 4.
+- A failed fetch or an unparsable response leaves the previously stored snapshot in place (preserve last good performance) instead of clearing it.
+- Snapshots older than 14 days, or with a `periodEnd` in the future or `clicks > impressions`, are treated as unusable and ignored by the UI.
+- Not scheduled as its own worker job: it runs as a best-effort tail step of `gsc_lifecycle_sync` (failures never fail lifecycle) and can be triggered manually from `/integrations`.
+- Powers the website list performance line and the «Рекомендуем добавить» recommendations only. It is not analytics or rank tracking.
+
+### Website list: favorites, recommendations, archive
+
+- Default `/websites` order with no search/filters: favorites (newest favorite first, then domain), then recommendations (in rank order), then everything else by domain. Once a search or filter is active the recommendation bucket is hidden and the remainder is plain alphabetical.
+- Recommendations: at most 3 non-favorited, non-archived websites with a usable, non-zero performance snapshot, ranked by clicks desc → impressions desc → domain. They are shown in their own section and are never auto-added to favorites.
+- The workspace query loads websites, open tasks and the user's favorites in three queries (no N+1 per row).
 
 ### Unified sync worker
 
@@ -231,6 +279,7 @@ Separate Node process (`npm run worker:start` / Compose service `worker`):
 16. Portfolio lifecycle reports (`/reports` + CSV)
 17. GHCR production deployment
 18. README + `.env.example`
+19. Personal website favorites, GSC-backed recommendations, and reversible archive/restore
 
 ## 10. Explicit non-goals (LOW v1)
 
@@ -239,11 +288,11 @@ Separate Node process (`npm run worker:start` / Compose service `worker`):
 - AI assistants
 - Notifications (email, Telegram, push, alert delivery)
 - Finance module / financial reports
-- Search ranking / position / SERP tracking
+- Search ranking / position / SERP tracking (the daily impressions/clicks snapshot is a single cached number per site, not analytics)
 - Extra uptime probes — site availability is taken from DSD; LOW does not duplicate DSD monitoring
 - Direct DSD/GSC database access
 - Copying Google OAuth tokens into LOW
-- New integrations or background job types beyond the existing worker
+- New integrations, or new scheduled worker jobs beyond `dsd_sites_sync` / `gsc_properties_sync` / `gsc_lifecycle_sync`
 
 ## 11. File map (iteration 1 target)
 

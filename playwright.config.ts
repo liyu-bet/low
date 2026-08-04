@@ -37,7 +37,7 @@ export default defineConfig({
     {
       name: 'admin',
       dependencies: ['setup-admin'],
-      testMatch: /(?:responsive|websites|tasks|users)\.spec\.ts/,
+      testMatch: /(?:responsive|websites|tasks|users|favorites|archive)\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
         storageState: '.playwright/admin.json',

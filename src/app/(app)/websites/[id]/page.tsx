@@ -23,6 +23,7 @@ import {
 } from '@/lib/websites/profile';
 import { listActiveUsersForAssign } from '@/lib/auth/users';
 import { requireUserSession } from '@/app/login/actions';
+import { isWebsiteFavorite } from '@/lib/websites/favorites';
 import { notFound } from 'next/navigation';
 
 export default async function WebsiteDetailPage({
@@ -44,7 +45,10 @@ export default async function WebsiteDetailPage({
   }
 
   const session = await requireUserSession();
-  const assignees = await listActiveUsersForAssign();
+  const [assignees, favorite] = await Promise.all([
+    listActiveUsersForAssign(),
+    isWebsiteFavorite(session.userId, id),
+  ]);
   const { website } = profile;
   const createEvent = createManualEventAction.bind(null, website.id);
   const archived = Boolean(website.archivedAt || website.status === 'ARCHIVED');
@@ -61,6 +65,7 @@ export default async function WebsiteDetailPage({
         website={website}
         openUrl={profile.overview.openUrl}
         showSettings={isAdmin}
+        isFavorite={favorite}
       />
 
       <Section>

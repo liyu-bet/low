@@ -2,18 +2,22 @@ import Link from 'next/link';
 import type { Website } from '@prisma/client';
 import { shouldShowWebsiteName } from '@/lib/auth/actor-label';
 import { PageHeader } from '@/components/ui/layout';
+import { WebsiteFavoriteStar } from '@/components/websites/WebsiteFavoriteStar';
 import { labelLifecycleStage, labelWebsiteStatus } from '@/lib/ui/labels';
 
 export function WebsiteProfileHeader({
   website,
   openUrl,
   showSettings = true,
+  isFavorite = false,
 }: {
   website: Website;
   openUrl: string;
   showSettings?: boolean;
+  isFavorite?: boolean;
 }) {
   const showName = shouldShowWebsiteName(website);
+  const archived = Boolean(website.archivedAt || website.status === 'ARCHIVED');
   const meta = [
     labelWebsiteStatus(website.status),
     labelLifecycleStage(website.lifecycleStage),
@@ -27,7 +31,16 @@ export function WebsiteProfileHeader({
       </Link>
 
       <PageHeader
-        title={website.domain}
+        title={
+          <span className="flex items-center gap-2">
+            <WebsiteFavoriteStar
+              websiteId={website.id}
+              isFavorite={isFavorite}
+              disabled={archived && !isFavorite}
+            />
+            {website.domain}
+          </span>
+        }
         description={
           <>
             {showName ? <p className="truncate text-sm text-ink-100">{website.name}</p> : null}

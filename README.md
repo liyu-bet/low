@@ -21,6 +21,7 @@ Implemented:
 - Bulk website operations
 - Complete website profile (`/websites/[id]`)
 - Portfolio lifecycle reports (`/reports`)
+- Personal website favorites, "Рекомендуем добавить" recommendations, and archive/restore (`/websites`)
 - GHCR production deployment (`https://low.liyu.bet`)
 
 **Explicitly out of LOW v1 (do not add):**
@@ -175,6 +176,14 @@ Google OAuth access/refresh tokens are **never** copied into LOW.
 Run locally: `npm run worker:start`. Compose service: `worker` (no published ports). Status: `/integrations` and compact block on `/websites`.
 
 **Limits:** worker hits live M2M when env points there; lifecycle is capped per run (backlog drains over days); no Redis.
+
+At the end of each GSC lifecycle sync, LOW also refreshes a lightweight "last available day" impressions/clicks snapshot (`GscPerformanceSnapshot`) for each active website's selected GSC property (concurrency 4; a failed fetch keeps the last good snapshot instead of clearing it). This snapshot powers the favorites list and the "Рекомендуем добавить" recommendations below — it is **not** a full analytics/rank-tracking feature.
+
+## Favorites, recommendations, and archive (`/websites`)
+
+- **Favorites** — any user can star/unstar a website from the list or its profile page (`WebsiteFavorite`, per-user). Favorited sites are pinned to the top of `/websites` under «Избранное · N», newest favorite first.
+- **Recommendations** — up to 3 non-favorited, non-archived sites with fresh, non-zero GSC performance are suggested under «Рекомендуем добавить» so users can promote sites worth tracking closely. Hidden while search/filters are active or while viewing the archive.
+- **Archive/restore** (ADMIN only) — "Убрать из LOW" (with confirmation) moves a site to `ARCHIVED` status/stage while remembering its prior status/stage (`statusBeforeArchive` / `lifecycleStageBeforeArchive`) and logging a `WEBSITE_ARCHIVED` event; nothing is deleted. "Вернуть в LOW" from the archived view restores the prior status/stage and logs `WEBSITE_RESTORED`. Both actions are idempotent. Archived sites can't be newly favorited, but existing favorites can still be removed.
 
 ## Local ports (example)
 

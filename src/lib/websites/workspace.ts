@@ -1,7 +1,18 @@
 import { IntegrationSystem, type LifecycleStage, type WebsiteStatus } from '@prisma/client';
 import { prisma } from '@/lib/db/prisma';
 import { isDsdOfflineStatus, isDsdOnlineStatus, parseDsdExternalSnapshot } from '@/lib/dsd/snapshot';
+import type { WebsitePerformanceSummary, WebsiteFavoriteRecommendation } from '@/lib/gsc/performance';
+import {
+  parseGscExternalSnapshotWithPerformance,
+  selectSourceGscProperty,
+  type SelectableGscProperty,
+} from '@/lib/gsc/snapshot-performance';
 import { formatDueRelative, sortOpenTasks } from '@/lib/tasks/classify';
+import {
+  performanceFromIntegrationExternalData,
+  pickRecommendationCandidates,
+  type RecommendationCandidate,
+} from '@/lib/websites/recommendations';
 import {
   buildWebsiteMilestones,
   nextMilestoneLabel,
@@ -39,12 +50,18 @@ export type WebsiteWorkspaceRow = {
     title: string;
     dueRelative: string;
   } | null;
+  isFavorite: boolean;
+  favoriteCreatedAt: Date | null;
+  performance: WebsitePerformanceSummary | null;
+  /** Always null on the row itself — see `recommendations` on WebsitesWorkspaceData. */
+  recommendation: WebsiteFavoriteRecommendation | null;
 };
 
 export type WebsitesWorkspaceData = {
   rows: WebsiteWorkspaceRow[];
   groups: string[];
   includeArchived: boolean;
+  recommendations: WebsiteFavoriteRecommendation[];
 };
 
 function availabilityFromDsd(externalData: unknown): AvailabilityDot {
@@ -55,13 +72,65 @@ function availabilityFromDsd(externalData: unknown): AvailabilityDot {
   return 'unknown';
 }
 
+function toSelectableGscProperty(integration: {
+  externalEntityId: string | null;
+  externalData: unknown;
+}): SelectableGscProperty | null {
+  const snapshot = parseGscExternalSnapshotWithPerformance(integration.externalData);
+  if (!snapshot || !integration.externalEntityId) return null;
+  return {
+    externalId: integration.externalEntityId,
+    siteUrl: snapshot.siteUrl,
+    isSelected: snapshot.isSelected,
+    propertyType: snapshot.propertyType,
+    externalData: integration.externalData,
+  };
+}
+
+function resolveSitePerformance(
+  gscIntegrations: Array<{ externalEntityId: string | null; externalData: unknown }>,
+  primaryUrl: string | null,
+  now: Date,
+): WebsitePerformanceSummary | null {
+  const selectable = gscIntegrations
+    .map(toSelectableGscProperty)
+    .filter((p): p is SelectableGscProperty => p != null);
+  const chosen = selectSourceGscProperty(selectable, primaryUrl);
+  if (!chosen) return null;
+  return performanceFromIntegrationExternalData(chosen.externalData, now);
+}
+
+/**
+ * Default row order: favorites (newest favorite first), then recommended
+ * (in recommendation rank order), then everything else by domain.
+ */
+export function compareWorkspaceRows(
+  a: WebsiteWorkspaceRow,
+  b: WebsiteWorkspaceRow,
+  recommendedRank: ReadonlyMap<string, number>,
+): number {
+  const bucketA = a.isFavorite ? 0 : recommendedRank.has(a.id) ? 1 : 2;
+  const bucketB = b.isFavorite ? 0 : recommendedRank.has(b.id) ? 1 : 2;
+  if (bucketA !== bucketB) return bucketA - bucketB;
+
+  if (bucketA === 0) {
+    const diff = (b.favoriteCreatedAt?.getTime() ?? 0) - (a.favoriteCreatedAt?.getTime() ?? 0);
+    if (diff !== 0) return diff;
+  }
+  if (bucketA === 1) {
+    const diff = recommendedRank.get(a.id)! - recommendedRank.get(b.id)!;
+    if (diff !== 0) return diff;
+  }
+  return a.domain.localeCompare(b.domain, 'ru');
+}
+
 export async function getWebsitesWorkspace(
-  options: { includeArchived?: boolean } = {},
+  options: { includeArchived?: boolean; userId: string },
   now: Date = new Date(),
 ): Promise<WebsitesWorkspaceData> {
   const includeArchived = Boolean(options.includeArchived);
 
-  const [websites, openTasks] = await Promise.all([
+  const [websites, openTasks, favorites] = await Promise.all([
     prisma.website.findMany({
       where: includeArchived
         ? undefined
@@ -72,9 +141,13 @@ export async function getWebsitesWorkspace(
           },
       include: {
         integrations: {
-          where: { system: IntegrationSystem.DSD },
-          select: { externalData: true, status: true },
-          take: 1,
+          where: { system: { in: [IntegrationSystem.DSD, IntegrationSystem.GSC] } },
+          select: {
+            system: true,
+            externalData: true,
+            status: true,
+            externalEntityId: true,
+          },
         },
       },
       orderBy: { domain: 'asc' },
@@ -92,6 +165,10 @@ export async function getWebsitesWorkspace(
       },
       orderBy: { createdAt: 'desc' },
     }),
+    prisma.websiteFavorite.findMany({
+      where: { userId: options.userId },
+      select: { websiteId: true, createdAt: true },
+    }),
   ]);
 
   const tasksByWebsite = new Map<string, typeof openTasks>();
@@ -101,12 +178,18 @@ export async function getWebsitesWorkspace(
     tasksByWebsite.set(task.websiteId, list);
   }
 
+  const favoriteCreatedAtByWebsite = new Map(
+    favorites.map((favorite) => [favorite.websiteId, favorite.createdAt]),
+  );
+
   const rows: WebsiteWorkspaceRow[] = websites.map((site) => {
-    const dsd = site.integrations[0] ?? null;
+    const dsd = site.integrations.find((i) => i.system === IntegrationSystem.DSD) ?? null;
+    const gscIntegrations = site.integrations.filter((i) => i.system === IntegrationSystem.GSC);
     const milestones = buildWebsiteMilestones(site);
     const siteTasks = tasksByWebsite.get(site.id) ?? [];
     const sorted = sortOpenTasks(siteTasks, now);
     const nearest = sorted[0] ?? null;
+    const favoriteCreatedAt = favoriteCreatedAtByWebsite.get(site.id) ?? null;
 
     return {
       id: site.id,
@@ -139,6 +222,10 @@ export async function getWebsitesWorkspace(
             dueRelative: formatDueRelative(nearest.dueAt, now),
           }
         : null,
+      isFavorite: favoriteCreatedAt != null,
+      favoriteCreatedAt,
+      performance: resolveSitePerformance(gscIntegrations, site.primaryUrl, now),
+      recommendation: null,
     };
   });
 
@@ -146,5 +233,27 @@ export async function getWebsitesWorkspace(
     ...new Set(rows.map((r) => r.group?.trim()).filter((g): g is string => Boolean(g))),
   ].sort((a, b) => a.localeCompare(b, 'ru'));
 
-  return { rows, groups, includeArchived };
+  const recommendations = includeArchived
+    ? []
+    : pickRecommendationCandidates(
+        rows.map(
+          (row): RecommendationCandidate => ({
+            id: row.id,
+            domain: row.domain,
+            archivedAt: row.archivedAt,
+            status: row.status,
+            lifecycleStage: row.lifecycleStage,
+            isFavorite: row.isFavorite,
+            performance: row.performance,
+          }),
+        ),
+        now,
+      );
+
+  // Ranking must be known before sorting so recommended rows sit between
+  // favorites and the rest.
+  const recommendedRank = new Map(recommendations.map((item, index) => [item.websiteId, index]));
+  rows.sort((a, b) => compareWorkspaceRows(a, b, recommendedRank));
+
+  return { rows, groups, includeArchived, recommendations };
 }

@@ -50,7 +50,8 @@ export function WebsiteSettingsBlock({ website }: { website: Website }) {
           <div className="mt-3 space-y-3">
             <p className="text-sm text-ink-200">
               Архивирование скрывает сайт из основного списка. Связанные события, задачи и
-              интеграции не удаляются. Отменить через интерфейс пока нельзя.
+              интеграции не удаляются. Сайт можно вернуть в любой момент: «Сайты» → «Фильтры» →
+              «Показать архив» → «Вернуть в LOW».
             </p>
             <form action={archiveWebsiteAction.bind(null, website.id)} className="space-y-3">
               <label className="block text-sm text-ink-200">
@@ -67,7 +68,10 @@ export function WebsiteSettingsBlock({ website }: { website: Website }) {
           </div>
         </details>
       ) : (
-        <p className="text-sm text-ink-200">Сайт уже в архиве.</p>
+        <p className="text-sm text-ink-200">
+          Сайт в архиве. Вернуть его можно из списка сайтов: «Фильтры» → «Показать архив» →
+          «Вернуть в LOW».
+        </p>
       )}
     </div>
   );

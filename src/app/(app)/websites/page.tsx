@@ -11,7 +11,7 @@ export default async function WebsitesPage({
   const session = await requireUserSession();
   const params = await searchParams;
   const includeArchived = params.archived === '1';
-  const data = await getWebsitesWorkspace({ includeArchived });
+  const data = await getWebsitesWorkspace({ includeArchived, userId: session.userId });
 
   const rows = data.rows.map((site) => ({
     id: site.id,
@@ -40,7 +40,12 @@ export default async function WebsitesPage({
     lastWorkAt: null,
     createdAt: site.createdAt.toISOString(),
     updatedAt: site.createdAt.toISOString(),
+    isFavorite: site.isFavorite,
+    favoriteCreatedAt: site.favoriteCreatedAt?.toISOString() ?? null,
+    performance: site.performance,
   }));
+
+  const recommendations = data.recommendations;
 
   return (
     <div className="space-y-5">
@@ -50,6 +55,8 @@ export default async function WebsitesPage({
         groups={data.groups}
         includeArchived={includeArchived}
         canManage={session.role === 'ADMIN'}
+        userId={session.userId}
+        recommendations={recommendations}
       />
     </div>
   );

@@ -10,6 +10,7 @@ import {
   createWebsite,
   isDomainNormalizationError,
   isDuplicateDomainError,
+  restoreWebsite,
   updateWebsite,
 } from '@/lib/websites/service';
 
@@ -71,10 +72,49 @@ export async function updateWebsiteAction(
 }
 
 export async function archiveWebsiteAction(websiteId: string): Promise<void> {
-  await requireAdminSession();
-  await archiveWebsite(websiteId);
+  const session = await requireAdminSession();
+  await archiveWebsite(websiteId, { userId: session.userId, label: authorSnapshot(session) });
   revalidatePath('/websites');
   revalidatePath(`/websites/${websiteId}`);
   // Plain form action (not useActionState) — server redirect is fine.
   redirect('/websites');
+}
+
+export type WebsiteListActionState = {
+  ok?: boolean;
+  error?: string;
+  message?: string;
+};
+
+/** Used from the workspace cards — no redirect, list stays in place. */
+export async function archiveWebsiteFromListAction(
+  websiteId: string,
+  _prev: WebsiteListActionState,
+  _formData: FormData,
+): Promise<WebsiteListActionState> {
+  const session = await requireAdminSession();
+  try {
+    await archiveWebsite(websiteId, { userId: session.userId, label: authorSnapshot(session) });
+    revalidatePath('/websites');
+    revalidatePath(`/websites/${websiteId}`);
+    return { ok: true, message: 'Сайт убран из LOW' };
+  } catch (error) {
+    return { error: mapWebsiteError(error) };
+  }
+}
+
+export async function restoreWebsiteFromListAction(
+  websiteId: string,
+  _prev: WebsiteListActionState,
+  _formData: FormData,
+): Promise<WebsiteListActionState> {
+  const session = await requireAdminSession();
+  try {
+    await restoreWebsite(websiteId, { userId: session.userId, label: authorSnapshot(session) });
+    revalidatePath('/websites');
+    revalidatePath(`/websites/${websiteId}`);
+    return { ok: true, message: 'Сайт возвращён в LOW' };
+  } catch (error) {
+    return { error: mapWebsiteError(error) };
+  }
 }

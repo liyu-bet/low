@@ -108,4 +108,14 @@ export const E2E_SITES = {
     normalizedDomain: 'next-stage.example.test',
     name: 'Next Stage Site',
   },
+  favoriteCandidate: {
+    domain: 'favorite-candidate.example.test',
+    normalizedDomain: 'favorite-candidate.example.test',
+    name: 'Favorite Candidate Site',
+  },
+  archivable: {
+    domain: 'archivable.example.test',
+    normalizedDomain: 'archivable.example.test',
+    name: 'Archivable Site',
+  },
 } as const;

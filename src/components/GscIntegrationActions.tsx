@@ -5,6 +5,7 @@ import { useFormStatus } from 'react-dom';
 import {
   checkGscConnectionAction,
   syncGscLifecycleAction,
+  syncGscPerformanceAction,
   syncGscPropertiesAction,
   type IntegrationActionState,
 } from '@/app/(app)/integrations/actions';
@@ -41,6 +42,10 @@ export function GscIntegrationActions({
     syncGscLifecycleAction,
     {} as IntegrationActionState,
   );
+  const [performanceState, performanceAction] = useActionState(
+    syncGscPerformanceAction,
+    {} as IntegrationActionState,
+  );
 
   if (!configured) {
     return (
@@ -69,6 +74,9 @@ export function GscIntegrationActions({
         </form>
         <form action={lifecycleAction}>
           <PendingButton label="Найти первые показы и клики" pendingLabel="Поиск…" />
+        </form>
+        <form action={performanceAction}>
+          <PendingButton label="Обновить показы/клики за сутки" pendingLabel="Обновление…" />
         </form>
       </div>
 
@@ -117,6 +125,22 @@ export function GscIntegrationActions({
             Статус: {lifecycleState.summary.status} · обработано {lifecycleState.summary.processed} ·
             создано {lifecycleState.summary.createdCount} · обновлено{' '}
             {lifecycleState.summary.updatedCount} · ошибок {lifecycleState.summary.errorCount}
+          </div>
+        </div>
+      ) : null}
+
+      {performanceState.error ? (
+        <p className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          {performanceState.error}
+        </p>
+      ) : null}
+      {performanceState.ok && performanceState.summary ? (
+        <div className="rounded border border-moss-500/40 bg-moss-50 px-3 py-2 text-sm text-moss-600">
+          <div>{performanceState.message}</div>
+          <div className="mt-1 text-ink-200">
+            Статус: {performanceState.summary.status} · обработано{' '}
+            {performanceState.summary.processed} · обновлено {performanceState.summary.updatedCount} ·
+            ошибок {performanceState.summary.errorCount}
           </div>
         </div>
       ) : null}

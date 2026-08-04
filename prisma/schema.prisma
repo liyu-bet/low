@@ -112,54 +112,72 @@ model User {
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
-  tasksCreated   WebsiteTask[]  @relation("TaskCreatedBy")
-  tasksAssigned  WebsiteTask[]  @relation("TaskAssignedTo")
-  tasksCompleted WebsiteTask[]  @relation("TaskCompletedBy")
-  eventsCreated  WebsiteEvent[] @relation("EventCreatedBy")
+  tasksCreated     WebsiteTask[]     @relation("TaskCreatedBy")
+  tasksAssigned    WebsiteTask[]     @relation("TaskAssignedTo")
+  tasksCompleted   WebsiteTask[]     @relation("TaskCompletedBy")
+  eventsCreated    WebsiteEvent[]    @relation("EventCreatedBy")
+  websiteFavorites WebsiteFavorite[]
 
   @@index([isActive])
   @@index([role])
 }
 
 model Website {
-  id                      String         @id @default(cuid())
-  domain                  String
-  normalizedDomain        String         @unique
-  name                    String?
-  primaryUrl              String?
-  status                  WebsiteStatus  @default(DRAFT)
-  lifecycleStage          LifecycleStage @default(IDEA)
-  group                   String?
-  tags                    String[]       @default([])
-  launchedAt              DateTime?
+  id                          String          @id @default(cuid())
+  domain                      String
+  normalizedDomain            String          @unique
+  name                        String?
+  primaryUrl                  String?
+  status                      WebsiteStatus   @default(DRAFT)
+  lifecycleStage              LifecycleStage  @default(IDEA)
+  group                       String?
+  tags                        String[]        @default([])
+  launchedAt                  DateTime?
   /// Manual override for launch date; wins over launchedAt when set.
-  launchedAtManual        DateTime?
-  launchDateSource        DateSource?
-  firstHealthyAt          DateTime?
+  launchedAtManual            DateTime?
+  launchDateSource            DateSource?
+  firstHealthyAt              DateTime?
   /// First discovery via GSC sync (automatic, read-only in UI).
-  gscFirstSeenAt          DateTime?
+  gscFirstSeenAt              DateTime?
   /// User override for “added to Search Console”; wins over gscFirstSeenAt.
-  gscAddedAtManual        DateTime?
+  gscAddedAtManual            DateTime?
   /// First available GSC day where impressions > 0 (automatic).
-  firstImpressionAt       DateTime?
+  firstImpressionAt           DateTime?
   /// Manual override for first impressions date.
-  firstImpressionAtManual DateTime?
-  firstClickAt            DateTime?
+  firstImpressionAtManual     DateTime?
+  firstClickAt                DateTime?
   /// Manual override for first click date.
-  firstClickAtManual      DateTime?
-  lastWorkAt              DateTime?
-  archivedAt              DateTime?
-  createdAt               DateTime       @default(now())
-  updatedAt               DateTime       @updatedAt
+  firstClickAtManual          DateTime?
+  lastWorkAt                  DateTime?
+  archivedAt                  DateTime?
+  /// Values restored by restoreWebsite after soft archive.
+  statusBeforeArchive         WebsiteStatus?
+  lifecycleStageBeforeArchive LifecycleStage?
+  createdAt                   DateTime        @default(now())
+  updatedAt                   DateTime        @updatedAt
 
   events       WebsiteEvent[]
   integrations WebsiteIntegration[]
   tasks        WebsiteTask[]
+  favorites    WebsiteFavorite[]
 
   @@index([status])
   @@index([lifecycleStage])
   @@index([group])
   @@index([lastWorkAt])
+}
+
+model WebsiteFavorite {
+  userId    String
+  websiteId String
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  website Website @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+
+  @@id([userId, websiteId])
+  @@index([websiteId])
+  @@index([userId, createdAt])
 }
 
 model WebsiteTask {

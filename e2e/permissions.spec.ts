@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import {
   assertDatabaseReady,
   attachBrowserErrorCollector,
+  ensureWebsiteFiltersOpen,
   openWebsiteByDomain,
   E2E_SITES,
   E2E_USERS,
@@ -18,9 +19,9 @@ test.describe('member permissions', () => {
     const collector = attachBrowserErrorCollector(page);
 
     await page.goto('/websites');
-    await expect(page.getByRole('heading', { name: 'Сайты' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Сайты', level: 1 })).toBeVisible();
     await page.goto('/tasks');
-    await expect(page.getByRole('heading', { name: 'Задачи' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Задачи', level: 1 })).toBeVisible();
 
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/websites');
@@ -68,6 +69,42 @@ test.describe('member permissions', () => {
     await page.goto('/integrations');
     await page.waitForURL(/\/websites/);
     expect(page.url()).not.toContain('/integrations');
+
+    collector.assertClean();
+    collector.dispose();
+  });
+
+  test('member cannot archive or restore sites but can still use favorites', async ({ page }) => {
+    const collector = attachBrowserErrorCollector(page);
+    const domain = E2E_SITES.archivable.domain;
+
+    await page.goto('/websites');
+    await page.getByPlaceholder(/Поиск/i).fill(domain);
+    const card = page.getByRole('listitem').filter({ hasText: domain });
+    await expect(card).toBeVisible();
+
+    // Archive lives behind the admin-only per-row action menu.
+    await expect(card.getByRole('button', { name: `Действия: ${domain}` })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Убрать из LOW' })).toHaveCount(0);
+
+    await ensureWebsiteFiltersOpen(page);
+    await page.getByRole('link', { name: 'Показать архив' }).click();
+    await expect(page).toHaveURL(/archived=1/);
+    await expect(page.getByRole('button', { name: 'Вернуть в LOW' })).toHaveCount(0);
+
+    // Favorites are per-user and available to every role.
+    await page.goto('/websites');
+    await page.getByPlaceholder(/Поиск/i).fill(domain);
+    await card.getByRole('button', { name: 'Добавить в избранное' }).click();
+    await expect(card.getByRole('button', { name: 'Убрать из избранного' })).toBeVisible({
+      timeout: 10_000,
+    });
+
+    // Leave no favorite behind so re-runs start from the same state.
+    await card.getByRole('button', { name: 'Убрать из избранного' }).click();
+    await expect(card.getByRole('button', { name: 'Добавить в избранное' })).toBeVisible({
+      timeout: 10_000,
+    });
 
     collector.assertClean();
     collector.dispose();
