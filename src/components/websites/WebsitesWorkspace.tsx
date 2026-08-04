@@ -17,7 +17,7 @@ import {
   restoreWebsiteFromListAction,
   type WebsiteListActionState,
 } from '@/app/(app)/websites/actions';
-import { ActionMenu, preserveScroll } from '@/components/ui/ActionMenu';
+import { preserveScroll } from '@/components/ui/ActionMenu';
 import { QuickWebsiteTaskForm } from '@/components/tasks/QuickWebsiteTaskForm';
 import { MilestoneProgressDots } from '@/components/websites/WebsiteMilestoneRail';
 import { WebsiteFavoriteStar } from '@/components/websites/WebsiteFavoriteStar';
@@ -29,6 +29,74 @@ import { cn } from '@/lib/ui/cn';
 import type { MilestoneRailItem } from '@/lib/websites/milestones';
 import type { AvailabilityDot } from '@/lib/websites/workspace';
 import { shouldShowWebsiteName } from '@/lib/auth/actor-label';
+
+function IconOpen({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" aria-hidden="true" className={className}>
+      <path
+        d="M14 3h7v7M21 3l-9 9"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M10 5H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function IconPlus({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" aria-hidden="true" className={className}>
+      <path
+        d="M12 5v14M5 12h14"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function IconTrash({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" aria-hidden="true" className={className}>
+      <path
+        d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function IconRestore({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" aria-hidden="true" className={className}>
+      <path
+        d="M3 12a9 9 0 1 0 3-6.7"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+      />
+      <path
+        d="M3 4v5h5"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
 
 export type WebsiteWorkspacePerformance = {
   sourcePropertyId: string;
@@ -183,12 +251,34 @@ function isRowArchived(row: WebsiteWorkspaceClientRow): boolean {
   );
 }
 
-function ArchiveMenuAction({
+function RestoreIconSubmit() {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      aria-busy={pending || undefined}
+      aria-label={pending ? 'Возвращаем…' : 'Вернуть в LOW'}
+      title="Вернуть в LOW"
+      className="icon-btn text-moss-700 hover:border-moss-500 hover:bg-moss-50"
+    >
+      <IconRestore />
+    </button>
+  );
+}
+
+function SiteActions({
   row,
-  isArchived,
+  archived,
+  isAdmin,
+  inlineOpen,
+  onToggleInline,
 }: {
   row: WebsiteWorkspaceClientRow;
-  isArchived: boolean;
+  archived: boolean;
+  isAdmin: boolean;
+  inlineOpen: boolean;
+  onToggleInline: () => void;
 }) {
   const router = useRouter();
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -218,25 +308,55 @@ function ArchiveMenuAction({
 
   return (
     <>
-      <ActionMenu label={`Действия: ${row.domain}`}>
-        {isArchived ? (
-          <form action={restoreAction}>
-            <RestoreSubmit />
-            {restoreState.error ? (
-              <p className="mt-1 px-2 text-xs text-red-700">{restoreState.error}</p>
-            ) : null}
-          </form>
-        ) : (
+      <div className="flex flex-wrap items-center gap-1.5">
+        <Link
+          href={`/websites/${row.id}`}
+          aria-label={`Открыть ${row.domain}`}
+          title="Открыть"
+          className="icon-btn"
+        >
+          <IconOpen />
+        </Link>
+        {!archived ? (
           <button
             type="button"
-            data-close-menu
-            onClick={() => setConfirmOpen(true)}
-            className="w-full rounded-md px-2 py-1.5 text-left text-sm text-red-700 hover:bg-red-50"
+            onClick={onToggleInline}
+            aria-pressed={inlineOpen}
+            aria-label={inlineOpen ? 'Скрыть форму задачи' : 'Добавить задачу'}
+            title={inlineOpen ? 'Скрыть' : 'Добавить задачу'}
+            className={cn(
+              'icon-btn',
+              inlineOpen
+                ? 'border-moss-500 bg-moss-50 text-moss-700'
+                : 'border-moss-500/40 bg-moss-500 text-white hover:bg-moss-600 hover:border-moss-600',
+            )}
           >
-            Убрать из LOW
+            <IconPlus />
           </button>
-        )}
-      </ActionMenu>
+        ) : null}
+        {isAdmin ? (
+          archived ? (
+            <form action={restoreAction} className="inline-flex">
+              <RestoreIconSubmit />
+            </form>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setConfirmOpen(true)}
+              aria-label="Убрать из LOW"
+              title="Убрать из LOW"
+              className="icon-btn text-red-700 hover:border-red-300 hover:bg-red-50"
+            >
+              <IconTrash />
+            </button>
+          )
+        ) : null}
+      </div>
+      {restoreState.error ? (
+        <p className="text-xs text-red-700" role="status">
+          {restoreState.error}
+        </p>
+      ) : null}
       {confirmOpen ? (
         <ConfirmDialog
           title="Убрать сайт из LOW?"
@@ -249,48 +369,6 @@ function ArchiveMenuAction({
         />
       ) : null}
     </>
-  );
-}
-
-function RestoreSubmit() {
-  const { pending } = useFormStatus();
-  return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="w-full rounded-md px-2 py-1.5 text-left text-sm text-moss-700 hover:bg-moss-50"
-    >
-      {pending ? 'Возвращаем…' : 'Вернуть в LOW'}
-    </button>
-  );
-}
-
-function SiteActions({
-  row,
-  archived,
-  inlineOpen,
-  onToggleInline,
-}: {
-  row: WebsiteWorkspaceClientRow;
-  archived: boolean;
-  inlineOpen: boolean;
-  onToggleInline: () => void;
-}) {
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      <Link href={`/websites/${row.id}`} className="btn-secondary !min-h-8 !px-2.5 !py-1.5 text-xs">
-        Открыть
-      </Link>
-      {!archived ? (
-        <button
-          type="button"
-          onClick={onToggleInline}
-          className="btn-primary !min-h-8 !min-w-0 !px-2.5 !py-1.5 text-xs"
-        >
-          {inlineOpen ? 'Скрыть' : '+ Задача'}
-        </button>
-      ) : null}
-    </div>
   );
 }
 
@@ -383,10 +461,10 @@ function WebsiteCard({
             <SiteActions
               row={row}
               archived={archived}
+              isAdmin={isAdmin}
               inlineOpen={inlineOpen}
               onToggleInline={onToggleInline}
             />
-            {isAdmin ? <ArchiveMenuAction row={row} isArchived={archived} /> : null}
           </div>
           {inlineOpen ? (
             <div className="pt-1">

@@ -21,8 +21,7 @@ test.describe('website archive and restore', () => {
     const card = page.getByRole('listitem').filter({ hasText: domain });
     await expect(card).toBeVisible();
 
-    await card.getByRole('button', { name: `Действия: ${domain}` }).click();
-    await page.getByRole('button', { name: 'Убрать из LOW' }).click();
+    await card.getByRole('button', { name: 'Убрать из LOW' }).click();
 
     const dialog = page.getByRole('dialog', { name: 'Убрать сайт из LOW?' });
     await expect(dialog).toBeVisible();
@@ -43,8 +42,7 @@ test.describe('website archive and restore', () => {
     await expect(archivedCard).toBeVisible();
     await expect(archivedCard.getByText(/В архиве/)).toBeVisible();
 
-    await archivedCard.getByRole('button', { name: `Действия: ${domain}` }).click();
-    await page.getByRole('button', { name: 'Вернуть в LOW' }).click();
+    await archivedCard.getByRole('button', { name: 'Вернуть в LOW' }).click();
 
     // The archived view lists every site, so a restored site stays visible but
     // switches back to its pre-archive status.
@@ -70,8 +68,7 @@ test.describe('website archive and restore', () => {
     await page.goto('/websites');
     await page.getByPlaceholder(/Поиск/i).fill(domain);
     const card = page.getByRole('listitem').filter({ hasText: domain });
-    await card.getByRole('button', { name: `Действия: ${domain}` }).click();
-    await page.getByRole('button', { name: 'Убрать из LOW' }).click();
+    await card.getByRole('button', { name: 'Убрать из LOW' }).click();
     const dialog = page.getByRole('dialog', { name: 'Убрать сайт из LOW?' });
     await dialog.getByRole('button', { name: 'Убрать из LOW' }).click();
     await expect(dialog).toHaveCount(0, { timeout: 10_000 });
@@ -86,8 +83,7 @@ test.describe('website archive and restore', () => {
     await expect(disabledStar).toBeVisible();
 
     // Restore for the next test run / other specs.
-    await archivedCard.getByRole('button', { name: `Действия: ${domain}` }).click();
-    await page.getByRole('button', { name: 'Вернуть в LOW' }).click();
+    await archivedCard.getByRole('button', { name: 'Вернуть в LOW' }).click();
     await expect(archivedCard.getByText(/Активен/)).toBeVisible({ timeout: 10_000 });
   });
 });

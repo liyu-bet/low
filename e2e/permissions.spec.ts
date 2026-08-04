@@ -83,9 +83,8 @@ test.describe('member permissions', () => {
     const card = page.getByRole('listitem').filter({ hasText: domain });
     await expect(card).toBeVisible();
 
-    // Archive lives behind the admin-only per-row action menu.
-    await expect(card.getByRole('button', { name: `Действия: ${domain}` })).toHaveCount(0);
-    await expect(page.getByRole('button', { name: 'Убрать из LOW' })).toHaveCount(0);
+    // Archive/restore icon actions are ADMIN-only.
+    await expect(card.getByRole('button', { name: 'Убрать из LOW' })).toHaveCount(0);
 
     await ensureWebsiteFiltersOpen(page);
     await page.getByRole('link', { name: 'Показать архив' }).click();
