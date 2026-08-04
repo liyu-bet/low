@@ -137,14 +137,5 @@ export function buildLifecycleChain(
   ];
 }
 
-export function resolveWebsiteOpenUrl(
-  primaryUrl: string | null | undefined,
-  domain: string,
-): string {
-  const trimmed = primaryUrl?.trim();
-  if (trimmed) {
-    if (/^https?:\/\//i.test(trimmed)) return trimmed;
-    return `https://${trimmed}`;
-  }
-  return `https://${domain}`;
-}
+export { resolveSafeWebsiteOpenUrl, resolveWebsiteOpenUrl } from './website-open-url';
+

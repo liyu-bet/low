@@ -85,6 +85,8 @@ test.describe('member permissions', () => {
 
     // Archive/restore icon actions are ADMIN-only.
     await expect(card.getByRole('button', { name: 'Убрать из LOW' })).toHaveCount(0);
+    await expect(card.getByRole('button', { name: 'Добавить задачу' })).toBeVisible();
+
 
     await ensureWebsiteFiltersOpen(page);
     await page.getByRole('link', { name: 'Показать архив' }).click();

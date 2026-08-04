@@ -18,10 +18,14 @@ test.describe('websites', () => {
     await page.goto('/websites');
 
     await page.getByPlaceholder(/Поиск/i).fill(E2E_SITES.complete.domain);
-    await expect(page.getByRole('link', { name: E2E_SITES.complete.domain, exact: true })).toBeVisible();
+    await expect(
+      page.getByRole('link', { name: `Открыть профиль ${E2E_SITES.complete.domain}` }),
+    ).toBeVisible();
 
     await page.getByPlaceholder(/Поиск/i).fill(E2E_SITES.complete.name);
-    await expect(page.getByRole('link', { name: E2E_SITES.complete.domain, exact: true })).toBeVisible();
+    await expect(
+      page.getByRole('link', { name: `Открыть профиль ${E2E_SITES.complete.domain}` }),
+    ).toBeVisible();
 
     await openWebsiteByDomain(page, E2E_SITES.complete.domain);
     await expect(page.getByText('Все основные этапы достигнуты')).toBeVisible();

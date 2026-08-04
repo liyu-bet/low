@@ -98,16 +98,36 @@ export function formatPerformancePeriodLabel(summary: {
     return 'За последние 24 часа';
   }
   if (summary.dataDate) {
-    const [y, m, d] = summary.dataDate.split('-').map(Number);
-    const date = new Date(Date.UTC(y, m - 1, d));
-    const formatted = date.toLocaleDateString('ru-RU', {
-      day: 'numeric',
-      month: 'long',
-      timeZone: 'UTC',
-    });
-    return `За последние доступные сутки · ${formatted}`;
+    return `За последние доступные сутки · ${formatYmdDayMonthRu(summary.dataDate)}`;
   }
   return 'За последние доступные сутки';
+}
+
+const RU_MONTHS_GENITIVE = [
+  'января',
+  'февраля',
+  'марта',
+  'апреля',
+  'мая',
+  'июня',
+  'июля',
+  'августа',
+  'сентября',
+  'октября',
+  'ноября',
+  'декабря',
+] as const;
+
+/** Deterministic «3 августа» label — avoids SSR/CSR locale ICU mismatches. */
+export function formatYmdDayMonthRu(ymd: string): string {
+  const [y, m, d] = ymd.split('-').map(Number);
+  if (!y || !m || !d || m < 1 || m > 12) return ymd;
+  return `${d} ${RU_MONTHS_GENITIVE[m - 1]}`;
+}
+
+export function formatPerformanceDataDateLabel(dataDate: string | null): string | null {
+  if (!dataDate) return null;
+  return `Данные за ${formatYmdDayMonthRu(dataDate)}`;
 }
 
 export function toPerformanceSummary(

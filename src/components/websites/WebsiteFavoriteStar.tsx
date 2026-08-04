@@ -17,7 +17,7 @@ function StarSubmit({ isFavorite }: { isFavorite: boolean }) {
       aria-label={isFavorite ? 'Убрать из избранного' : 'Добавить в избранное'}
       title={isFavorite ? 'Убрать из избранного' : 'Добавить в избранное'}
       className={cn(
-        'flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition-colors disabled:opacity-60',
+        'flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] border transition-colors disabled:opacity-60 sm:h-9 sm:w-9',
         isFavorite
           ? 'border-amber-400 bg-amber-50 text-amber-500'
           : 'border-ink-700 bg-white text-ink-300 hover:border-amber-400 hover:text-amber-500',
@@ -75,19 +75,29 @@ export function WebsiteFavoriteStar({
 
   if (disabled) {
     return (
-      <span
+      <button
+        type="button"
+        disabled
+        aria-label={disabledTitle}
         title={disabledTitle}
-        aria-hidden="true"
-        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-ink-800 text-ink-700"
+        className="flex h-10 w-10 shrink-0 cursor-not-allowed items-center justify-center rounded-[10px] border border-ink-800 text-ink-700 opacity-50 sm:h-9 sm:w-9"
       >
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.5">
+        <svg
+          viewBox="0 0 24 24"
+          width="18"
+          height="18"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          aria-hidden="true"
+        >
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
             d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.79L12 16.9l-5.2 2.61.99-5.79-4.21-4.1 5.82-.85L12 3.5z"
           />
         </svg>
-      </span>
+      </button>
     );
   }
 
